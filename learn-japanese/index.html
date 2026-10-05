@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Nihongo Blocks</title>
+<meta name="description" content="Learn basic Japanese sentence building by tapping colorful blocks. Works offline.">
+<meta name="theme-color" content="#ff6b6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Nihongo Blocks">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#fff8ec; --card:#ffffff; --ink:#2b2b3a; --soft:#8a8aa0; --line:#ece3d3;
+  --wa:#3b82f6; --wo:#16a34a; --ni:#9333ea; --de:#ea580c; --no:#db2777; --ka:#ca8a04;
+  --end:#e11d48; --desc:#0d9488; --time:#475569;
+  --good:#22c55e; --btn:#ff6b6b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+#app{max-width:760px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 0 10px}
+.bar .grow{flex:1}
+.round{width:56px;height:56px;border-radius:50%;background:var(--card);box-shadow:0 4px 0 var(--line);font-size:28px;display:grid;place-items:center}
+.round:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.round.on{background:#fff1c2}
+.dots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.dots i{width:14px;height:14px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--good)}
+.dots i.now{background:var(--btn);transform:scale(1.3)}
+
+/* home */
+.hero{text-align:center;padding:8px 0 4px}
+.hero h1{margin:0;font-size:clamp(30px,8vw,44px);letter-spacing:.5px}
+.hero h1 span{color:var(--btn)}
+.how{display:flex;justify-content:center;gap:8px;margin:10px 0 18px;font-size:15px;color:var(--soft);flex-wrap:wrap}
+.how b{display:flex;align-items:center;gap:6px;background:var(--card);padding:8px 12px;border-radius:999px;box-shadow:0 3px 0 var(--line);color:var(--ink);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.lesson{background:var(--card);border-radius:24px;padding:16px 10px 12px;text-align:center;box-shadow:0 6px 0 var(--line);position:relative}
+.lesson:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.lesson .em{font-size:46px;line-height:1.1}
+.lesson .num{position:absolute;top:10px;left:12px;font-weight:800;color:var(--soft);font-size:15px}
+.lesson .t{font-weight:800;font-size:18px;margin-top:6px}
+.lesson .j{font-size:15px;color:var(--soft);margin-top:2px}
+.lesson .stars{font-size:18px;margin-top:6px;letter-spacing:2px;min-height:22px}
+.lesson.big{grid-column:1/-1;background:linear-gradient(135deg,#ffe08a,#ffb36b)}
+.foot{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.pill{background:var(--card);padding:12px 18px;border-radius:999px;box-shadow:0 4px 0 var(--line);font-weight:700;text-decoration:none;color:var(--ink);font-size:16px}
+.pill:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.note{text-align:center;color:var(--soft);font-size:14px;margin-top:10px}
+
+/* teacher */
+.teach{display:flex;gap:12px;align-items:flex-start;margin:6px 0 14px}
+.cat{font-size:54px;line-height:1;flex:none;animation:bob 2.4s ease-in-out infinite}
+.bubble{background:var(--card);border-radius:20px;padding:14px 16px;font-size:19px;line-height:1.45;box-shadow:0 4px 0 var(--line);position:relative;flex:1}
+.bubble:before{content:"";position:absolute;left:-10px;top:20px;border:10px solid transparent;border-right-color:var(--card);border-left:0}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-4deg)}}
+
+/* blocks */
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:flex-end}
+.blk{--c:var(--wa);min-width:64px;padding:10px 14px 8px;border-radius:18px;background:var(--c);color:#fff;text-align:center;
+  box-shadow:0 5px 0 color-mix(in srgb,var(--c) 70%,#000);position:relative;transition:transform .15s}
+.blk .k{font-size:clamp(24px,6.5vw,32px);font-weight:800;line-height:1.15;display:block}
+.blk .ro{font-size:14px;opacity:.95;display:block;font-family:system-ui,sans-serif;font-weight:600}
+.blk.p{min-width:52px;border-radius:50%;width:auto;aspect-ratio:1;display:grid;place-content:center;padding:6px 10px;
+  background:#fff;color:var(--c);border:4px solid var(--c);box-shadow:0 5px 0 color-mix(in srgb,var(--c) 45%,#fff)}
+.blk:active{transform:translateY(4px)}
+.blk .mean{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:var(--ink);color:#fff;font-size:15px;
+  padding:6px 10px;border-radius:10px;white-space:nowrap;font-family:system-ui,sans-serif;pointer-events:none;animation:pop .2s}
+.no-romaji .ro{display:none}
+.blk.shake{animation:shake .4s}
+.blk.glow{animation:glow 1s infinite}
+.blk.gone{visibility:hidden}
+@keyframes shake{20%,60%{transform:translateX(-8px) rotate(-3deg)}40%,80%{transform:translateX(8px) rotate(3deg)}}
+@keyframes glow{50%{transform:translateY(-6px) scale(1.08);filter:brightness(1.15)}}
+@keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}}
+.hand{position:absolute;left:50%;top:100%;font-size:40px;transform:translateX(-30%);animation:poke 1s infinite;pointer-events:none;z-index:2}
+@keyframes poke{50%{transform:translate(-30%,-10px)}}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0 4px}
+.legend span{--c:var(--wa);border:3px solid var(--c);color:var(--c);background:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:15px}
+
+/* quiz */
+.prompt{background:var(--card);border-radius:24px;padding:14px 12px;box-shadow:0 5px 0 var(--line);text-align:center}
+.pics{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.pic{display:flex;flex-direction:column;align-items:center;min-width:56px}
+.pic .e{font-size:clamp(38px,11vw,54px);line-height:1.1}
+.pic .w{font-size:13px;color:var(--soft);font-weight:700}
+.eng{font-size:20px;font-weight:700;margin-top:8px}
+.ask{font-size:17px;color:var(--soft);text-align:center;margin:16px 0 10px;font-weight:700}
+.slots{min-height:96px;background:repeating-linear-gradient(90deg,transparent 0 12px,rgba(0,0,0,.03) 12px 24px);border:3px dashed var(--line);border-radius:22px;padding:14px 8px}
+.tray{margin-top:22px;min-height:90px}
+.choices{display:flex;justify-content:center;gap:16px;margin-top:22px;flex-wrap:wrap}
+.choices .blk{font-size:1.2em;min-width:84px}
+.choices .blk.p{min-width:84px}
+.hole{display:inline-grid;place-items:center;min-width:64px;min-height:64px;border-radius:50%;border:4px dashed var(--btn);color:var(--btn);font-size:32px;font-weight:800;animation:glow 1.4s infinite}
+.go{display:block;margin:26px auto 0;background:var(--good);color:#fff;font-size:26px;font-weight:800;padding:16px 40px;border-radius:999px;box-shadow:0 6px 0 #15803d;animation:glow 1.4s infinite}
+.go:active{transform:translateY(4px);box-shadow:0 2px 0 #15803d}
+.say{background:#fff1c2;border-radius:999px;padding:8px 16px;font-weight:800;font-size:18px;margin-top:10px;box-shadow:0 3px 0 #f0d78a}
+.cheer{text-align:center;font-size:30px;font-weight:800;color:var(--good);margin-top:16px;min-height:40px;animation:pop2 .4s}
+@keyframes pop2{from{transform:scale(.4);opacity:0}}
+
+/* finish */
+.finish{text-align:center;padding-top:30px}
+.finish .bigstars{font-size:64px;letter-spacing:6px;margin:10px 0}
+.finish .bigstars i{display:inline-block;font-style:normal;animation:pop2 .5s backwards}
+.finish h2{font-size:34px;margin:0}
+
+.fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:50}
+.fx span{position:absolute;font-size:32px;animation:fly 1.3s ease-out forwards}
+@keyframes fly{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="fx" id="fx"></div>
+
+<script>
+"use strict";
+/* ---------- Words ----------
+   key: [kana, romaji, English, picture, speakAs?] */
+const W = {
+  watashi:["わたし","watashi","I / me","🙋"],
+  kore:["これ","kore","this","👉"],
+  neko:["ねこ","neko","cat","🐱"],
+  inu:["いぬ","inu","dog","🐶"],
+  sakana:["さかな","sakana","fish","🐟"],
+  ringo:["りんご","ringo","apple","🍎"],
+  pan:["パン","pan","bread","🍞"],
+  mizu:["みず","mizu","water","💧"],
+  ocha:["おちゃ","ocha","tea","🍵"],
+  hon:["ほん","hon","book","📖"],
+  sushi:["すし","sushi","sushi","🍣"],
+  gakkou:["がっこう","gakkō","school","🏫"],
+  ie:["いえ","ie","home","🏠"],
+  kouen:["こうえん","kōen","park","🌳"],
+  umi:["うみ","umi","sea","🌊"],
+  kinou:["きのう","kinō","yesterday","⏪"],
+  ookii:["おおきい","ōkii","big","🐘"],
+  chiisai:["ちいさい","chiisai","small","🐭"],
+  kawaii:["かわいい","kawaii","cute","💖"],
+  oishii:["おいしい","oishii","yummy","😋"],
+  desu:["です","desu","is / am","🟰"],
+  tabemasu:["たべます","tabemasu","eat","🍴"],
+  tabemasen:["たべません","tabemasen","don't eat","🍴❌"],
+  tabemashita:["たべました","tabemashita","ate","🍴⏪"],
+  nomimasu:["のみます","nomimasu","drink","🥤"],
+  nomimasen:["のみません","nomimasen","don't drink","🥤❌"],
+  nomimashita:["のみました","nomimashita","drank","🥤⏪"],
+  ikimasu:["いきます","ikimasu","go","🚶"],
+  ikimasen:["いきません","ikimasen","don't go","🚶❌"],
+  ikimashita:["いきました","ikimashita","went","🚶⏪"],
+  yomimasu:["よみます","yomimasu","read","👀"],
+  asobimasu:["あそびます","asobimasu","play","⚽"],
+  oyogimasu:["およぎます","oyogimasu","swim","🏊"],
+  wa:["は","wa","about…","", "わ"],
+  wo:["を","o","the thing","", "お"],
+  ni:["に","ni","to","" ],
+  de:["で","de","at","" ],
+  no:["の","no","'s","" ],
+  ka:["か","ka","?","" ]
+};
+const PARTICLES = ["wa","wo","ni","de","no","ka"];
+const ADJ = ["ookii","chiisai","kawaii","oishii"];
+const TIME = ["kinou"];
+const VERB_FAM = [["tabemasu","tabemasen","tabemashita"],["nomimasu","nomimasen","nomimashita"],["ikimasu","ikimasen","ikimashita"]];
+const isVerb = k => k==="desu" || /mas(u|en|hita)$/.test(k);
+
+/* role colours + kid-friendly legend */
+const ROLE = {
+  wa:  {c:"var(--wa)",  tip:"は wa = who / what we talk about"},
+  wo:  {c:"var(--wo)",  tip:"を o = the thing you do it to"},
+  ni:  {c:"var(--ni)",  tip:"に ni = where you go"},
+  de:  {c:"var(--de)",  tip:"で de = where it happens"},
+  no:  {c:"var(--no)",  tip:"の no = belongs to"},
+  ka:  {c:"var(--ka)",  tip:"か ka = it's a question?"},
+  end: {c:"var(--end)", tip:"Action word goes LAST"},
+  desc:{c:"var(--desc)",tip:"Describing word"},
+  time:{c:"var(--time)",tip:"When"}
+};
+
+/* ---------- Lessons ----------
+   Sentences: "keys separated by spaces", alternative orders with "|". */
+const LESSONS = [
+  {emoji:"👉", title:"This is…", jp:"これ は", roles:["wa","end"], focus:["wa"],
+   tip:"<b>は</b> (wa) points at what we're talking about.<br><b>です</b> (desu) means <b>“is”</b>. It goes at the very <b>END</b>!",
+   s:[["kore wa ringo desu","This is an apple."],["kore wa neko desu","This is a cat."],["kore wa hon desu","This is a book."],["watashi wa inu desu","I am a dog! Woof!"]]},
+  {emoji:"❓", title:"Ask!", jp:"か", roles:["wa","end","ka"], focus:["ka"],
+   tip:"Want to ask something? Just add <b>か</b> (ka) at the end.<br>It works like a <b>?</b> you can say out loud!",
+   s:[["kore wa ringo desu ka","Is this an apple?"],["kore wa sushi desu ka","Is this sushi?"],["kore wa inu desu ka","Is this a dog?"]]},
+  {emoji:"🍎", title:"Do things", jp:"を", roles:["wa","wo","end"], focus:["wo"],
+   tip:"<b>を</b> (o) sticks to the <b>THING</b>.<br>In Japanese the action word comes <b>LAST</b>: “I – apple – eat!”",
+   s:[["watashi wa ringo wo tabemasu","I eat an apple."],["watashi wa mizu wo nomimasu","I drink water."],["watashi wa hon wo yomimasu","I read a book."],["neko wa sakana wo tabemasu","The cat eats fish."]]},
+  {emoji:"🏫", title:"Go places", jp:"に", roles:["wa","ni","end"], focus:["ni"],
+   tip:"<b>に</b> (ni) sticks to the place you are <b>GOING TO</b>.",
+   s:[["watashi wa gakkou ni ikimasu","I go to school."],["inu wa kouen ni ikimasu","The dog goes to the park."],["watashi wa umi ni ikimasu","I go to the sea."]]},
+  {emoji:"🌳", title:"Where?", jp:"で", roles:["wa","de","wo","end"], focus:["de"],
+   tip:"<b>で</b> (de) sticks to the place where something <b>HAPPENS</b>.",
+   s:[["watashi wa kouen de asobimasu","I play at the park."],["watashi wa umi de oyogimasu","I swim in the sea."],["watashi wa ie de hon wo yomimasu","I read a book at home."],["neko wa ie de asobimasu","The cat plays at home."]]},
+  {emoji:"🎒", title:"Mine!", jp:"の", roles:["wa","no","end"], focus:["no"],
+   tip:"<b>の</b> (no) means <b>“belongs to”</b>.<br>わたし の ほん = <b>my</b> book.",
+   s:[["kore wa watashi no hon desu","This is my book."],["kore wa watashi no neko desu","This is my cat."],["kore wa inu no pan desu","This is the dog's bread."]]},
+  {emoji:"🙅", title:"Not!", jp:"ません", roles:["wa","wo","ni","end"], focus:["tabemasen","nomimasen","ikimasen"],
+   tip:"To say <b>NOT</b>, change the end:<br>たべ<b>ます</b> (eat) ➜ たべ<b>ません</b> (don't eat)",
+   s:[["watashi wa sushi wo tabemasen","I don't eat sushi."],["inu wa ocha wo nomimasen","The dog doesn't drink tea."],["watashi wa gakkou ni ikimasen","I don't go to school."]]},
+  {emoji:"⏪", title:"Yesterday", jp:"ました", roles:["time","wa","wo","ni","end"], focus:["tabemashita","nomimashita","ikimashita"],
+   tip:"Did it already happen? Change the end:<br>たべ<b>ます</b> (eat) ➜ たべ<b>ました</b> (ate)",
+   s:[["kinou watashi wa sushi wo tabemashita|watashi wa kinou sushi wo tabemashita","Yesterday I ate sushi."],
+      ["kinou watashi wa umi ni ikimashita|watashi wa kinou umi ni ikimashita","Yesterday I went to the sea."],
+      ["kinou inu wa mizu wo nomimashita|inu wa kinou mizu wo nomimashita","Yesterday the dog drank water."]]},
+  {emoji:"🐘", title:"Describe", jp:"おおきい", roles:["wa","desc","end"], focus:ADJ,
+   tip:"Describing words go right <b>BEFORE</b> the thing,<br>or before です: いぬ は <b>おおきい</b> です = The dog is <b>big</b>.",
+   s:[["inu wa ookii desu","The dog is big."],["neko wa kawaii desu","The cat is cute."],["sushi wa oishii desu","Sushi is yummy!"],["kore wa chiisai ringo desu","This is a small apple."]]}
+];
+const REVIEW = {emoji:"🏆", title:"Big Challenge", jp:"ぜんぶ", roles:[], focus:[], review:true,
+  tip:"Mix of <b>everything</b>! You can do it!"};
+
+/* ---------- Saved progress (optional) ---------- */
+const KEY="nihongo-blocks-v1";
+let save = {stars:{}, romaji:true, sound:true, tut:false};
+try{ Object.assign(save, JSON.parse(localStorage.getItem(KEY)||"{}")); }catch(e){}
+function store(){ try{ localStorage.setItem(KEY, JSON.stringify(save)); }catch(e){} }
+
+/* ---------- Sound ---------- */
+let jaVoice=null;
+function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); jaVoice = vs.find(v=>/^ja/i.test(v.lang))||null; }catch(e){} }
+if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function say(text){
+  if(!save.sound || !("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang="ja-JP"; u.rate=.8; if(jaVoice) u.voice=jaVoice;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+const speakWord = k => say(W[k][4] || W[k][0]);
+const speakSentence = keys => say(keys.map(k=>W[k][0]).join(""));
+let actx=null;
+function beep(notes){
+  if(!save.sound) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    let t = actx.currentTime;
+    for(const [f,d] of notes){
+      const o=actx.createOscillator(), g=actx.createGain();
+      o.type="triangle"; o.frequency.value=f; o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+d);
+      o.start(t); o.stop(t+d); t+=d*.8;
+    }
+  }catch(e){}
+}
+const sfx = {
+  good:()=>beep([[660,.12],[880,.18]]),
+  bad: ()=>beep([[200,.2]]),
+  win: ()=>beep([[523,.14],[659,.14],[784,.14],[1047,.35]])
+};
+
+/* ---------- Helpers ---------- */
+const $app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; };
+const parse = s => s.split("|").map(o=>o.trim().split(/\s+/));
+
+/* colour of each word = the job it does in the sentence */
+function roleOf(keys,i){
+  const k=keys[i], next=keys[i+1];
+  if(PARTICLES.includes(k)) return k;
+  if(isVerb(k)) return "end";
+  if(ADJ.includes(k)) return "desc";
+  if(TIME.includes(k)) return "time";
+  if(next && PARTICLES.includes(next) && next!=="ka") return next;
+  return "end"; // noun right before です
+}
+function roleMap(keys){ const m={}; keys.forEach((k,i)=>m[k]=roleOf(keys,i)); return m; }
+
+function blockHTML(k, role, attrs=""){
+  const [kana,ro]=W[k];
+  const p = PARTICLES.includes(k) ? " p" : "";
+  return `<button class="blk${p}" style="--c:${ROLE[role].c}" data-k="${k}" ${attrs} aria-label="${esc(kana+" "+ro)}">
+    <span class="k">${kana}</span><span class="ro">${ro}</span></button>`;
+}
+function picsHTML(keys){
+  return `<div class="pics">${keys.filter(k=>W[k][3]).map(k=>
+    `<div class="pic"><span class="e">${W[k][3]}</span><span class="w">${esc(W[k][2])}</span></div>`).join("")}</div>`;
+}
+function burst(n=24){
+  const fx=document.getElementById("fx"); const em=["⭐","🎉","✨","🌸","💮"];
+  for(let i=0;i<n;i++){
+    const s=document.createElement("span");
+    s.textContent=em[i%em.length];
+    s.style.left=(40+Math.random()*20)+"%"; s.style.top="45%";
+    s.style.setProperty("--x",(Math.random()*500-250)+"px");
+    s.style.setProperty("--y",(Math.random()*-400-50)+"px");
+    s.style.setProperty("--r",(Math.random()*720-360)+"deg");
+    fx.appendChild(s); setTimeout(()=>s.remove(),1400);
+  }
+}
+const CHEERS=["すごい! Great!","いいね! Nice!","やった! Yay!","じょうず! Good job!","かんぺき! Perfect!"];
+const cheer = () => CHEERS[Math.random()*CHEERS.length|0];
+
+function topBar(inner, homeBtn=true){
+  return `<div class="bar">
+    ${homeBtn?`<button class="round" data-act="home" aria-label="Home">🏠</button>`:""}
+    <div class="grow">${inner||""}</div>
+    <button class="round ${save.romaji?"on":""}" data-act="romaji" aria-label="Show or hide ABC letters">${save.romaji?"Aa":"あ"}</button>
+    <button class="round" data-act="sound" aria-label="Sound on or off">${save.sound?"🔊":"🔇"}</button>
+  </div>`;
+}
+function applyPrefs(){ document.body.classList.toggle("no-romaji",!save.romaji); }
+
+/* ---------- Screens ---------- */
+let L=null; // current lesson state
+
+function home(){
+  L=null;
+  const cards = LESSONS.map((l,i)=>lessonCard(l,i)).join("") + lessonCard(REVIEW,LESSONS.length,true);
+  $app.innerHTML = topBar(`<div class="hero"><h1>にほんご <span>Blocks</span></h1></div>`,false) +
+    `<div class="how"><b>👆 Tap a lesson</b><b>🧩 Build sentences</b><b>⭐ Get stars</b></div>
+     <div class="grid">${cards}</div>
+     <div class="foot">
+       <button class="pill hidden" id="installBtn">📲 Install app</button>
+       <a class="pill" href="index.html" download="nihongo-blocks.html">⬇️ Download</a>
+     </div>
+     <div class="note" id="iosNote"></div>`;
+  setupInstall();
+}
+function lessonCard(l,i,big){
+  const st=save.stars[i]||0;
+  return `<button class="lesson${big?" big":""}" data-act="open" data-i="${i}">
+    ${big?"":`<span class="num">${i+1}</span>`}
+    <div class="em">${l.emoji}</div><div class="t">${esc(l.title)}</div><div class="j">${l.jp}</div>
+    <div class="stars">${st?"⭐".repeat(st):""}</div></button>`;
+}
+
+function openLesson(i){
+  const l = i<LESSONS.length ? LESSONS[i] : REVIEW;
+  let steps=[];
+  if(l.review){
+    const pool=[];
+    LESSONS.forEach((ls,li)=>ls.s.forEach((s,si)=>{ pool.push({type:"build",l:ls,s}); if(findFocus(ls,parse(s[0])[0])>=0) pool.push({type:"pick",l:ls,s}); }));
+    steps = shuffle(pool).slice(0,8);
+  }else{
+    const n=l.s.length;
+    for(let j=0;j<n;j++){ steps.push({type:"build",l,s:l.s[j]}); steps.push({type:"pick",l,s:l.s[(j+1)%n]}); }
+  }
+  L={i,l,steps,step:0,mistakes:0};
+  intro();
+}
+
+function intro(){
+  const l=L.l;
+  const ex = l.review ? null : parse(l.s[0][0])[0];
+  const rm = ex ? roleMap(ex) : null;
+  const legend = l.roles.map(r=>`<span style="--c:${ROLE[r].c}">${ROLE[r].tip}</span>`).join("");
+  $app.innerHTML = topBar(`<div style="text-align:center;font-weight:800;font-size:22px">${l.emoji} ${esc(l.title)}</div>`) +
+    `<div class="teach"><div class="cat">🐱</div><div class="bubble">${l.tip}</div></div>` +
+    (ex ? `<div class="prompt">
+        <div class="row" id="exRow" style="margin-top:34px">${ex.map(k=>blockHTML(k,rm[k],'data-act="peek"')).join("")}</div>
+        <div class="eng">${esc(l.s[0][1])}</div>
+        <button class="say" data-act="hear">🔊 Listen</button>
+        <div class="note">👆 Tap a block to see what it means</div>
+      </div>` : "") +
+    (legend?`<div class="legend">${legend}</div>`:"") +
+    `<button class="go" data-act="start">Let's go! ▶</button>`;
+  if(ex) setTimeout(()=>speakSentence(ex),300);
+}
+
+function dotsHTML(){
+  return `<div class="dots">${L.steps.map((_,j)=>`<i class="${j<L.step?"done":j===L.step?"now":""}"></i>`).join("")}</div>`;
+}
+
+function findFocus(l,keys){
+  if(l.review) return -1;
+  return keys.findIndex(k=>l.focus.includes(k));
+}
+
+function runStep(){
+  if(L.step>=L.steps.length) return finish();
+  const st=L.steps[L.step];
+  if(st.type==="pick" && findFocus(st.l,parse(st.s[0])[0])<0) st.type="build";
+  st.type==="build" ? build(st) : pick(st);
+}
+
+/* --- Build: tap the blocks in the right order --- */
+function build(st){
+  const answers=parse(st.s[0]), main=answers[0], rm=roleMap(main);
+  const tiles=shuffle(main.map((k,id)=>({k,id})));
+  let placed=[], wrongs=0, done=false;
+  const tutorial=!save.tut;
+
+  $app.innerHTML = topBar(dotsHTML()) +
+    `<div class="prompt">${picsHTML(main)}<div class="eng">${esc(st.s[1])}</div></div>
+     <div class="ask">🧩 Tap the blocks in order!</div>
+     <div class="slots row" id="slots"></div>
+     <div class="tray row" id="tray">${tiles.map(t=>blockHTML(t.k,rm[t.k],`data-id="${t.id}" data-act="tile"`)).join("")}</div>
+     <div id="after"></div>`;
+  const tray=document.getElementById("tray"), slots=document.getElementById("slots");
+
+  const nextOk = k => answers.some(a=>placed.every((p,j)=>a[j]===p) && a[placed.length]===k);
+  function hint(){
+    tray.querySelectorAll(".blk").forEach(b=>{b.classList.remove("glow"); b.querySelector(".hand")?.remove();});
+    if(done) return;
+    if(!(tutorial || wrongs>=2)) return;
+    const b=[...tray.querySelectorAll(".blk:not(.gone)")].find(b=>nextOk(b.dataset.k));
+    if(b){ b.classList.add("glow"); if(tutorial){ const h=document.createElement("span"); h.className="hand"; h.textContent="👆"; b.appendChild(h);} }
+  }
+  L.onTile = btn=>{
+    if(done || btn.classList.contains("gone")) return;
+    const k=btn.dataset.k;
+    if(nextOk(k)){
+      placed.push(k); wrongs=0;
+      btn.classList.add("gone");
+      slots.insertAdjacentHTML("beforeend", blockHTML(k,rm[k],'data-act="hearword"'));
+      speakWord(k);
+      if(placed.length===main.length){
+        done=true; sfx.win(); burst();
+        if(tutorial){ save.tut=true; store(); }
+        setTimeout(()=>speakSentence(placed),500);
+        document.getElementById("after").innerHTML=
+          `<div class="cheer">${cheer()}</div><button class="go" data-act="next">Next ▶</button>`;
+      }else sfx.good();
+    }else{
+      wrongs++; L.mistakes++; sfx.bad();
+      btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+    }
+    hint();
+  };
+  hint();
+}
+
+/* --- Pick: choose the missing piece --- */
+function pick(st){
+  const keys=parse(st.s[0])[0], rm=roleMap(keys), fi=findFocus(st.l,keys), ans=keys[fi];
+  let opts;
+  if(PARTICLES.includes(ans)) opts=[ans,...shuffle(["wa","wo","ni","de","no"].filter(p=>p!==ans)).slice(0,2)];
+  else if(ADJ.includes(ans)) opts=[ans,...shuffle(ADJ.filter(a=>a!==ans)).slice(0,1)];
+  else { const fam=VERB_FAM.find(f=>f.includes(ans)); opts = /mashita$/.test(ans) ? fam.slice() : [ans,fam[0]]; }
+  opts=shuffle(opts);
+  let done=false;
+  const sentence = () => keys.map((k,j)=> j===fi && !done ? `<span class="hole" id="hole">?</span>` : blockHTML(k,rm[k],'data-act="hearword"')).join("");
+
+  $app.innerHTML = topBar(dotsHTML()) +
+    `<div class="prompt">${picsHTML(keys)}<div class="eng">${esc(st.s[1])}</div></div>
+     <div class="ask">🤔 Which block is missing?</div>
+     <div class="slots row" id="sent">${sentence()}</div>
+     <div class="choices" id="choices">${opts.map(k=>blockHTML(k,rm[ans],'data-act="choice"')).join("")}</div>
+     <div id="after"></div>`;
+  let wrongs=0;
+  L.onChoice = btn=>{
+    if(done) return;
+    if(btn.dataset.k===ans){
+      done=true; sfx.win(); burst();
+      document.getElementById("sent").innerHTML=sentence();
+      document.getElementById("choices").innerHTML="";
+      setTimeout(()=>speakSentence(keys),300);
+      document.getElementById("after").innerHTML=
+        `<div class="cheer">${cheer()}</div><button class="go" data-act="next">Next ▶</button>`;
+    }else{
+      wrongs++; L.mistakes++; sfx.bad(); speakWord(btn.dataset.k);
+      btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+      if(wrongs>=2) document.querySelector(`#choices [data-k="${ans}"]`)?.classList.add("glow");
+    }
+  };
+}
+
+function finish(){
+  const m=L.mistakes, stars = m<=1?3 : m<=4?2 : 1;
+  save.stars[L.i]=Math.max(save.stars[L.i]||0,stars); store();
+  sfx.win(); burst(40); setTimeout(()=>burst(30),500);
+  const nextI = L.i+1 <= LESSONS.length ? L.i+1 : null;
+  $app.innerHTML = topBar("") +
+    `<div class="finish">
+      <div class="cat" style="font-size:90px">🐱</div>
+      <h2>やったね! You did it!</h2>
+      <div class="bigstars">${[1,2,3].map(n=>`<i style="animation-delay:${n*.25}s">${n<=stars?"⭐":"☆"}</i>`).join("")}</div>
+      ${nextI!==null?`<button class="go" data-act="open" data-i="${nextI}">Next lesson ▶</button>`:""}
+      <div class="foot"><button class="pill" data-act="open" data-i="${L.i}">🔁 Again</button><button class="pill" data-act="home">🏠 Home</button></div>
+    </div>`;
+  say("やったね");
+}
+
+/* ---------- One tap handler for everything ---------- */
+$app.addEventListener("click", e=>{
+  const b=e.target.closest("[data-act]"); if(!b) return;
+  const a=b.dataset.act;
+  if(actx && actx.state==="suspended") actx.resume();
+  switch(a){
+    case "home": try{speechSynthesis.cancel()}catch(_){} home(); break;
+    case "open": openLesson(+b.dataset.i); break;
+    case "start": runStep(); break;
+    case "next": L.step++; runStep(); break;
+    case "tile": L.onTile(b); break;
+    case "choice": L.onChoice(b); break;
+    case "hearword": speakWord(b.dataset.k); break;
+    case "hear": speakSentence(parse(L.l.s[0][0])[0]); break;
+    case "peek":
+      document.querySelectorAll("#exRow .mean").forEach(m=>m.remove());
+      b.insertAdjacentHTML("beforeend",`<span class="mean">${esc(W[b.dataset.k][2])}</span>`);
+      speakWord(b.dataset.k); break;
+    case "romaji":
+      save.romaji=!save.romaji; store(); applyPrefs();
+      b.classList.toggle("on",save.romaji); b.textContent=save.romaji?"Aa":"あ"; break;
+    case "sound":
+      save.sound=!save.sound; store(); b.textContent=save.sound?"🔊":"🔇";
+      if(!save.sound) try{speechSynthesis.cancel()}catch(_){} break;
+  }
+});
+
+/* ---------- Install as an app ---------- */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt=e; setupInstall(); });
+function setupInstall(){
+  const btn=document.getElementById("installBtn"); if(!btn) return;
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if(deferredPrompt && !standalone){
+    btn.classList.remove("hidden");
+    btn.onclick=async()=>{ deferredPrompt.prompt(); try{await deferredPrompt.userChoice}catch(_){} deferredPrompt=null; btn.classList.add("hidden"); };
+  }
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const note=document.getElementById("iosNote");
+  if(note && ios && !standalone && location.protocol.startsWith("http"))
+    note.innerHTML="📲 To install: tap <b>Share</b> then <b>Add to Home Screen</b>";
+}
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
+applyPrefs();
+home();
+</script>
+</body>
+</html>
