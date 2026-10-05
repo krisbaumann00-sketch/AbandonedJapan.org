@@ -630,7 +630,8 @@ function msgHTML(m,i){
     ${d.tip?`<div class="tip">💡 ${esc(d.tip)}</div>`:""}
   </div></div>`;
 }
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+// Claude pages block the microphone, so only offer the 🎤 on the website.
+const SR = window.claude ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
 let rec=null;
 
 function talk(){
