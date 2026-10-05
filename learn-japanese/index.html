@@ -15,7 +15,7 @@
 :root{
   --bg:#fff8ec; --card:#ffffff; --ink:#2b2b3a; --soft:#8a8aa0; --line:#ece3d3;
   --wa:#3b82f6; --wo:#16a34a; --ni:#9333ea; --de:#ea580c; --no:#db2777; --ka:#ca8a04;
-  --end:#e11d48; --desc:#0d9488; --time:#475569;
+  --end:#e11d48; --desc:#0d9488; --time:#0891b2; --other:#64748b;
   --good:#22c55e; --btn:#ff6b6b;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -118,6 +118,49 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .fx span{position:absolute;font-size:32px;animation:fly 1.3s ease-out forwards}
 @keyframes fly{to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
 .hidden{display:none!important}
+
+/* talk */
+.talk{grid-column:1/-1;display:flex;align-items:center;gap:14px;text-align:left;background:linear-gradient(135deg,#ffd1dc,#c7d2fe);border-radius:24px;padding:16px;box-shadow:0 6px 0 var(--line);margin-bottom:16px;width:100%}
+.talk:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.talk .em{font-size:52px;line-height:1}
+.talk .t{font-weight:800;font-size:22px}
+.talk .j{font-size:15px;color:#4b4b63;margin-top:2px}
+.chat{flex:1;display:flex;flex-direction:column;gap:14px;padding:6px 0 16px}
+.msg.me{align-self:flex-end;background:var(--wa);color:#fff;border-radius:20px 20px 4px 20px;padding:10px 16px;font-size:20px;max-width:85%;overflow-wrap:anywhere}
+.msg.bot{display:flex;gap:8px;align-items:flex-start}
+.msg.bot .cat{font-size:40px}
+.msg.bot .card{background:var(--card);border-radius:20px;padding:34px 12px 12px;box-shadow:0 4px 0 var(--line);flex:1;min-width:0;position:relative}
+.msg.bot .row{justify-content:flex-start;gap:8px}
+.msg.bot .blk{min-width:0;padding:6px 10px 5px;border-radius:14px}
+.msg.bot .blk .k{font-size:22px}
+.msg.bot .blk .ro{font-size:12px}
+.msg.bot .blk.p{min-width:44px}
+.msg.bot .replay{position:absolute;top:6px;right:8px;font-size:20px;background:#fff1c2;border-radius:999px;padding:2px 10px}
+.msg .en{color:var(--soft);font-size:16px;margin-top:10px;font-weight:600}
+.msg .tip{background:#fff1c2;border-radius:12px;padding:8px 12px;margin-top:8px;font-size:16px;line-height:1.4}
+.msg.err .card{padding-top:12px}
+.typing{display:flex;gap:6px;padding:10px 4px}
+.typing i{width:12px;height:12px;border-radius:50%;background:var(--soft);animation:bob 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+.dock{position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(6px + env(safe-area-inset-bottom));border-top:3px dashed var(--line)}
+.opts{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scroll-snap-type:x mandatory}
+.opts:empty{display:none}
+.opt{flex:none;scroll-snap-align:start;background:var(--card);border:3px solid var(--wa);border-radius:18px;padding:6px 12px;text-align:center;box-shadow:0 3px 0 var(--line);max-width:100%}
+.opt:active{transform:translateY(3px)}
+.opt .k{font-size:19px;font-weight:800;display:block}
+.opt .ro{font-size:12px;color:var(--soft);display:block}
+.opt .e{font-size:13px;color:var(--ink);display:block}
+.inrow{display:flex;gap:8px;margin-top:10px;align-items:center}
+.mic{width:68px;height:68px;border-radius:50%;background:var(--btn);color:#fff;font-size:32px;box-shadow:0 5px 0 #c94b4b;flex:none;display:grid;place-items:center}
+.mic.on{background:var(--end);animation:glow 1s infinite}
+.mic:active{transform:translateY(3px)}
+#say{flex:1;min-width:0;font:inherit;font-size:18px;padding:14px 16px;border-radius:999px;border:3px solid var(--line);background:#fff;color:var(--ink);-webkit-user-select:text;user-select:text}
+#say:focus{outline:none;border-color:var(--wa)}
+.send{width:56px;height:56px;border-radius:50%;background:var(--good);color:#fff;font-size:24px;flex:none;box-shadow:0 4px 0 #15803d}
+.send:disabled,.mic:disabled{opacity:.45}
+.lang{font-size:13px;font-weight:800;background:var(--card);border-radius:999px;padding:6px 10px;box-shadow:0 3px 0 var(--line);margin-top:8px}
+.hint{font-size:13px;color:var(--soft);text-align:center;margin-top:6px}
+
 </style>
 </head>
 <body>
@@ -185,7 +228,8 @@ const ROLE = {
   ka:  {c:"var(--ka)",  tip:"か ka = it's a question?"},
   end: {c:"var(--end)", tip:"Action word goes LAST"},
   desc:{c:"var(--desc)",tip:"Describing word"},
-  time:{c:"var(--time)",tip:"When"}
+  time:{c:"var(--time)",tip:"When"},
+  other:{c:"var(--other)",tip:"Other words"}
 };
 
 /* ---------- Lessons ----------
@@ -325,7 +369,8 @@ function home(){
   L=null;
   const cards = LESSONS.map((l,i)=>lessonCard(l,i)).join("") + lessonCard(REVIEW,LESSONS.length,true);
   $app.innerHTML = topBar(`<div class="hero"><h1>にほんご <span>Blocks</span></h1></div>`,false) +
-    `<div class="how"><b>👆 Tap a lesson</b><b>🧩 Build sentences</b><b>⭐ Get stars</b></div>
+    `<div class="how"><b>👆 Tap a lesson</b><b>🧩 Build sentences</b><b>⭐ Get stars</b><b>💬 Talk</b></div>
+     <button class="talk" data-act="talk"><span class="em">🐱💬</span><span><div class="t">Talk with Neko-sensei</div><div class="j">Speak or tap. Neko-sensei talks back and explains!</div></span></button>
      <div class="grid">${cards}</div>
      <div class="foot">
        <button class="pill hidden" id="installBtn">📲 Install app</button>
@@ -489,13 +534,169 @@ function finish(){
   say("やったね");
 }
 
+/* ---------- Talk with Neko-sensei ----------
+   Inside a Claude artifact it uses the viewer's Claude ("sample");
+   on the website it calls /api/chat (see api/chat.js). */
+// Keep in sync with SENSEI_RULES in api/chat.js.
+const SENSEI_RULES = `You are Neko-sensei, a warm, playful cat who is a Japanese conversation partner for absolute beginners, including young children.
+Hold a real, simple conversation in Japanese. Understand whatever the learner says (Japanese in kana, kanji or romaji, English, or a mix, even with mistakes or speech-recognition errors) and respond naturally to what they mean.
+- Reply in very simple beginner Japanese: one or two short sentences, polite です/ます form, mostly hiragana, katakana for loanwords, no kanji. Put a space between every word and particle.
+- Keep the conversation going: usually end with an easy question.
+- If the learner writes English or asks how to say something, teach the Japanese for it, then carry on.
+- If the learner's Japanese has a mistake, gently show the correct version in "tip".
+- Everything must be kind and suitable for children.
+Reply with only one JSON object and no other text:
+{"jp": "your whole reply in Japanese",
+ "en": "natural English translation",
+ "blocks": [every word and particle of "jp" in order, each {"jp": "...", "ro": "romaji (は is wa, を is o)", "en": "short meaning", "role": "...", "p": true only for particles}],
+ "tip": "one short, kid-friendly sentence explaining one grammar point in your reply, or a gentle fix of the learner's sentence (You said X, try Y!). Empty string if nothing useful.",
+ "options": [three short, easy replies the learner could say next, each {"jp": "...", "ro": "...", "en": "..."}, spaces between words]}
+Roles: a word takes the role of the particle right after it (わたし before は is "wa", りんご before を is "wo", がっこう before に is "ni", こうえん before で is "de", わたし before の is "no"). Particles use their own role (は "wa", を "wo", に "ni", で "de", の "no", か "ka"; other particles such as が も と へ よ ね are "other"). Verbs, です, and the noun or adjective right before です are "end". A describing word before a noun is "desc". Time words are "time". Greetings and everything else are "other". Punctuation joins the block before it.`;
+
+const OPENING = {
+  jp:"こんにちは！ わたし は ねこせんせい です。 あなた の なまえ は？",
+  en:"Hello! I am Neko-sensei. What is your name?",
+  blocks:[
+    {jp:"こんにちは！",ro:"konnichiwa!",en:"hello",role:"other"},
+    {jp:"わたし",ro:"watashi",en:"I",role:"wa"},{jp:"は",ro:"wa",en:"about…",role:"wa",p:true},
+    {jp:"ねこせんせい",ro:"neko-sensei",en:"cat teacher",role:"end"},{jp:"です。",ro:"desu.",en:"am",role:"end"},
+    {jp:"あなた",ro:"anata",en:"you",role:"no"},{jp:"の",ro:"no",en:"'s",role:"no",p:true},
+    {jp:"なまえ",ro:"namae",en:"name",role:"wa"},{jp:"は？",ro:"wa?",en:"is…?",role:"wa",p:true}
+  ],
+  tip:"あなた の なまえ = your name. の (no) means “belongs to”!",
+  options:[
+    {jp:"わたし は ケン です。",ro:"watashi wa Ken desu.",en:"I am Ken."},
+    {jp:"こんにちは！",ro:"konnichiwa!",en:"Hello!"},
+    {jp:"もう いちど おねがいします。",ro:"mō ichido onegaishimasu.",en:"Say it again, please."}
+  ]
+};
+const chat = {turns:[], msgs:[{who:"bot",data:OPENING}], busy:false, lang:"ja-JP"};
+const samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample").catch(()=>null) : Promise.resolve(null);
+
+function cleanReply(d){
+  if(!d || typeof d!=="object" || typeof d.jp!=="string" || !d.jp.trim()) throw {code:"bad_reply"};
+  const str = v => typeof v==="string" ? v : "";
+  let blocks = Array.isArray(d.blocks) ? d.blocks.filter(b=>b && str(b.jp).trim()) : [];
+  if(!blocks.length) blocks = d.jp.split(/\s+/).filter(Boolean).map(w=>({jp:w,ro:"",en:"",role:"other"}));
+  return {
+    jp:d.jp, en:str(d.en), tip:str(d.tip),
+    blocks:blocks.slice(0,40).map(b=>({jp:str(b.jp),ro:str(b.ro),en:str(b.en),role:ROLE[b.role]?b.role:"other",p:!!b.p})),
+    options:(Array.isArray(d.options)?d.options:[]).filter(o=>o && str(o.jp).trim()).slice(0,3).map(o=>({jp:str(o.jp),ro:str(o.ro),en:str(o.en)}))
+  };
+}
+async function askSensei(turns){
+  let t = turns.slice(-16);
+  while(t.length && t[0].role!=="user") t.shift();
+  const sample = await samplePromise;
+  if(sample) return cleanReply(await sample.json([{role:"user",content:SENSEI_RULES}, ...t], {cache:false, modelTier:"quick"}));
+  if(!location.protocol.startsWith("http")) throw {code:"offline"};
+  let r;
+  try{ r = await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:t})}); }
+  catch(e){ throw {code:"offline"}; }
+  if(!r.ok){ let j={}; try{ j=await r.json(); }catch(_){} throw {code:j.error||"server"}; }
+  return cleanReply(await r.json());
+}
+function errorText(code){
+  switch(code){
+    case "offline": return "I can only talk when you're online. 🌐 Open the website version of this app to chat with me!";
+    case "not_configured": return "Talking isn't switched on for this website yet. (A grown-up needs to add the Claude key in Vercel.)";
+    case "not_granted": case "sampling_disabled": return "I need permission to talk. Allow Claude for this page, then try again.";
+    case "rate_limited": case "busy": return "Phew, lots of chatting! Wait a minute, then try again.";
+    default: return "Oops, I didn't catch that. Please try again!";
+  }
+}
+
+function chatBlock(b){
+  return `<button class="blk${b.p?" p":""}" style="--c:${ROLE[b.role].c}" data-act="cword" data-say="${esc(b.jp)}" data-en="${esc(b.en)}" aria-label="${esc(b.jp+" "+b.ro)}">
+    <span class="k">${esc(b.jp)}</span>${b.ro?`<span class="ro">${esc(b.ro)}</span>`:""}</button>`;
+}
+function msgHTML(m,i){
+  if(m.who==="me") return `<div class="msg me">${esc(m.text)}</div>`;
+  if(m.who==="err") return `<div class="msg bot err"><div class="cat">😿</div><div class="card"><div class="tip">${esc(m.text)}</div></div></div>`;
+  const d=m.data;
+  return `<div class="msg bot"><div class="cat">🐱</div><div class="card">
+    <button class="replay" data-act="replay" data-n="${i}" aria-label="Listen again">🔊</button>
+    <div class="row">${d.blocks.map(chatBlock).join("")}</div>
+    ${d.en?`<div class="en">${esc(d.en)}</div>`:""}
+    ${d.tip?`<div class="tip">💡 ${esc(d.tip)}</div>`:""}
+  </div></div>`;
+}
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null;
+
+function talk(){
+  L=null;
+  $app.innerHTML = topBar(`<div style="text-align:center;font-weight:800;font-size:22px">🐱 Talk</div>`) +
+    `<div class="chat" id="chat"></div>
+     <div class="dock">
+       <div class="opts" id="opts"></div>
+       <form class="inrow" id="talkForm">
+         <button type="button" class="mic${SR?"":" hidden"}" id="mic" data-act="mic" aria-label="Speak">🎤</button>
+         <input id="say" autocomplete="off" placeholder="Say or type anything…" aria-label="Your message">
+         <button class="send" id="sendBtn" aria-label="Send">➤</button>
+       </form>
+       <div class="hint">${SR?`<button type="button" class="lang" data-act="lang" id="langBtn"></button> · `:""}Tap a block to hear it</div>
+     </div>`;
+  document.getElementById("talkForm").addEventListener("submit", e=>{ e.preventDefault(); const i=document.getElementById("say"); const v=i.value; i.value=""; sendTalk(v); });
+  renderTalk();
+  const last=chat.msgs[chat.msgs.length-1];
+  if(last.who==="bot") setTimeout(()=>say(last.data.jp),300);
+}
+function renderTalk(){
+  const box=document.getElementById("chat"); if(!box) return;
+  box.innerHTML = chat.msgs.map(msgHTML).join("") + (chat.busy?`<div class="msg bot"><div class="cat">🐱</div><div class="typing"><i></i><i></i><i></i></div></div>`:"");
+  const lastBot=[...chat.msgs].reverse().find(m=>m.who==="bot");
+  document.getElementById("opts").innerHTML = chat.busy ? "" : (lastBot?lastBot.data.options:[]).map(o=>
+    `<button class="opt" data-act="opt" data-say="${esc(o.jp)}"><span class="k">${esc(o.jp)}</span><span class="ro">${esc(o.ro)}</span><span class="e">${esc(o.en)}</span></button>`).join("");
+  document.getElementById("sendBtn").disabled = chat.busy;
+  const lb=document.getElementById("langBtn"); if(lb) lb.textContent = chat.lang==="ja-JP" ? "🎤 I'll speak 日本語" : "🎤 I'll speak English";
+  window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+}
+async function sendTalk(text){
+  text=String(text||"").trim();
+  if(!text || chat.busy) return;
+  chat.msgs.push({who:"me",text});
+  chat.turns.push({role:"user",content:text});
+  chat.busy=true; renderTalk();
+  try{
+    const d = await askSensei(chat.turns);
+    chat.turns.push({role:"assistant",content:JSON.stringify(d)});
+    chat.msgs.push({who:"bot",data:d});
+    sfx.good(); say(d.jp);
+  }catch(e){
+    chat.turns.pop();
+    chat.msgs.push({who:"err",text:errorText(e && e.code)});
+  }
+  chat.busy=false; renderTalk();
+}
+function toggleMic(btn){
+  if(rec){ rec.stop(); return; }
+  try{ speechSynthesis.cancel(); }catch(_){}
+  rec = new SR(); rec.lang=chat.lang; rec.interimResults=true; rec.maxAlternatives=1;
+  const input=document.getElementById("say"); let finalText="";
+  btn.classList.add("on"); btn.textContent="⏹";
+  rec.onresult = e=>{ let t=""; for(const r of e.results){ t+=r[0].transcript; if(r.isFinal) finalText=t; } input.value=t; };
+  rec.onerror = e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed"){ btn.classList.add("hidden"); chat.msgs.push({who:"err",text:"The microphone isn't available here. Tap an answer bubble or type instead!"}); renderTalk(); } };
+  rec.onend = ()=>{ rec=null; btn.classList.remove("on"); btn.textContent="🎤"; const v=(finalText||input.value).trim(); if(v){ input.value=""; sendTalk(v);} };
+  try{ rec.start(); }catch(_){ rec=null; btn.classList.remove("on"); btn.textContent="🎤"; }
+}
+
 /* ---------- One tap handler for everything ---------- */
 $app.addEventListener("click", e=>{
   const b=e.target.closest("[data-act]"); if(!b) return;
   const a=b.dataset.act;
   if(actx && actx.state==="suspended") actx.resume();
   switch(a){
-    case "home": try{speechSynthesis.cancel()}catch(_){} home(); break;
+    case "home": try{speechSynthesis.cancel()}catch(_){} if(rec) rec.abort(); home(); break;
+    case "talk": talk(); break;
+    case "opt": sendTalk(b.dataset.say); break;
+    case "mic": toggleMic(b); break;
+    case "lang": chat.lang = chat.lang==="ja-JP" ? "en-US" : "ja-JP"; renderTalk(); break;
+    case "replay": { const m=chat.msgs[+b.dataset.n]; if(m && m.data) say(m.data.jp); break; }
+    case "cword":
+      document.querySelectorAll(".chat .mean").forEach(m=>m.remove());
+      if(b.dataset.en) b.insertAdjacentHTML("beforeend",`<span class="mean">${esc(b.dataset.en)}</span>`);
+      say({"は":"わ","を":"お","へ":"え"}[b.dataset.say]||b.dataset.say); break;
     case "open": openLesson(+b.dataset.i); break;
     case "start": runStep(); break;
     case "next": L.step++; runStep(); break;
