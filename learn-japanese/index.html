@@ -159,6 +159,8 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .send{width:56px;height:56px;border-radius:50%;background:var(--good);color:#fff;font-size:24px;flex:none;box-shadow:0 4px 0 #15803d}
 .send:disabled,.mic:disabled{opacity:.45}
 .lang{font-size:13px;font-weight:800;background:var(--card);border-radius:999px;padding:6px 10px;box-shadow:0 3px 0 var(--line);margin-top:8px}
+.status{text-align:center;font-weight:800;font-size:18px;margin-top:8px;min-height:24px}
+.status.listen{color:var(--end)}
 .hint{font-size:13px;color:var(--soft);text-align:center;margin-top:6px}
 
 </style>
@@ -278,15 +280,22 @@ function store(){ try{ localStorage.setItem(KEY, JSON.stringify(save)); }catch(e
 let jaVoice=null;
 function pickVoice(){ try{ const vs=speechSynthesis.getVoices(); jaVoice = vs.find(v=>/^ja/i.test(v.lang))||null; }catch(e){} }
 if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-function say(text){
-  if(!save.sound || !("speechSynthesis" in window)) return;
+// done() runs once when this speech finishes (or is skipped); a newer say() cancels it.
+let sayId=0;
+function say(text, done){
+  const id=++sayId; let over=false;
+  const fin=()=>{ if(over || id!==sayId) return; over=true; if(done) done(); };
+  if(!save.sound || !("speechSynthesis" in window)){ setTimeout(fin,0); return; }
   try{
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang="ja-JP"; u.rate=.8; if(jaVoice) u.voice=jaVoice;
+    u.onend=fin; u.onerror=fin;
     speechSynthesis.speak(u);
-  }catch(e){}
+    if(done) setTimeout(fin, 2000 + text.length*300); // some browsers never fire onend
+  }catch(e){ setTimeout(fin,0); }
 }
+function hush(){ sayId++; try{ speechSynthesis.cancel(); }catch(_){} }
 const speakWord = k => say(W[k][4] || W[k][0]);
 const speakSentence = keys => say(keys.map(k=>W[k][0]).join(""));
 let actx=null;
@@ -630,6 +639,7 @@ function talk(){
     `<div class="chat" id="chat"></div>
      <div class="dock">
        <div class="opts" id="opts"></div>
+       <div class="status" id="status" aria-live="polite"></div>
        <form class="inrow" id="talkForm">
          <button type="button" class="mic${SR?"":" hidden"}" id="mic" data-act="mic" aria-label="Speak">🎤</button>
          <input id="say" autocomplete="off" placeholder="Say or type anything…" aria-label="Your message">
@@ -638,9 +648,19 @@ function talk(){
        <div class="hint">${SR?`<button type="button" class="lang" data-act="lang" id="langBtn"></button> · `:""}Tap a block to hear it</div>
      </div>`;
   document.getElementById("talkForm").addEventListener("submit", e=>{ e.preventDefault(); const i=document.getElementById("say"); const v=i.value; i.value=""; sendTalk(v); });
-  renderTalk();
+  renderTalk(); setStatus("idle");
   const last=chat.msgs[chat.msgs.length-1];
-  if(last.who==="bot") setTimeout(()=>say(last.data.jp),300);
+  if(last.who==="bot") setTimeout(()=>{ if(!chat.live) say(last.data.jp); },300);
+}
+const STATUS = {
+  idle: SR ? "Tap 🎤 and talk to Neko-sensei!" : "Tap an answer or type to talk!",
+  listen:"👂 Listening… talk now!", think:"🐱 Thinking…", speak:"🔊 Neko-sensei is talking…"
+};
+function setStatus(st){
+  const el=document.getElementById("status"); if(!el) return;
+  el.textContent=STATUS[st]; el.className="status "+st;
+  const mic=document.getElementById("mic");
+  if(mic){ mic.classList.toggle("on",chat.live); mic.textContent=chat.live?"⏹":"🎤"; mic.setAttribute("aria-label",chat.live?"Stop talking":"Talk"); }
 }
 function renderTalk(){
   const box=document.getElementById("chat"); if(!box) return;
@@ -657,28 +677,44 @@ async function sendTalk(text){
   if(!text || chat.busy) return;
   chat.msgs.push({who:"me",text});
   chat.turns.push({role:"user",content:text});
-  chat.busy=true; renderTalk();
+  chat.busy=true; renderTalk(); setStatus("think");
   try{
     const d = await askSensei(chat.turns);
     chat.turns.push({role:"assistant",content:JSON.stringify(d)});
     chat.msgs.push({who:"bot",data:d});
-    sfx.good(); say(d.jp);
+    chat.busy=false; renderTalk(); setStatus("speak");
+    // Conversation mode: when Neko-sensei finishes talking, listen again.
+    say(d.jp, ()=>{ if(chat.live) listen(); else setStatus("idle"); });
   }catch(e){
     chat.turns.pop();
     chat.msgs.push({who:"err",text:errorText(e && e.code)});
+    chat.busy=false; chat.live=false; renderTalk(); setStatus("idle");
   }
-  chat.busy=false; renderTalk();
 }
-function toggleMic(btn){
-  if(rec){ rec.stop(); return; }
-  try{ speechSynthesis.cancel(); }catch(_){}
-  rec = new SR(); rec.lang=chat.lang; rec.interimResults=true; rec.maxAlternatives=1;
+// Conversation mode: 🎤 once, then listen → answer out loud → listen again, until ⏹.
+function startLive(){ chat.live=true; chat.misses=0; listen(); }
+function stopLive(){ chat.live=false; if(rec) rec.abort(); hush(); setStatus("idle"); }
+function listen(){
+  if(!chat.live || rec || chat.busy || !document.getElementById("mic")) return;
+  hush();
   const input=document.getElementById("say"); let finalText="";
-  btn.classList.add("on"); btn.textContent="⏹";
+  rec = new SR(); rec.lang=chat.lang; rec.interimResults=true; rec.maxAlternatives=1;
+  setStatus("listen");
   rec.onresult = e=>{ let t=""; for(const r of e.results){ t+=r[0].transcript; if(r.isFinal) finalText=t; } input.value=t; };
-  rec.onerror = e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed"){ btn.classList.add("hidden"); chat.msgs.push({who:"err",text:"The microphone isn't available here. Tap an answer bubble or type instead!"}); renderTalk(); } };
-  rec.onend = ()=>{ rec=null; btn.classList.remove("on"); btn.textContent="🎤"; const v=(finalText||input.value).trim(); if(v){ input.value=""; sendTalk(v);} };
-  try{ rec.start(); }catch(_){ rec=null; btn.classList.remove("on"); btn.textContent="🎤"; }
+  rec.onerror = e=>{
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture"){
+      chat.live=false; document.getElementById("mic")?.classList.add("hidden");
+      chat.msgs.push({who:"err",text:"The microphone isn't available here. Tap an answer bubble or type instead!"}); renderTalk();
+    }
+  };
+  rec.onend = ()=>{
+    rec=null;
+    const v=(finalText||input.value).trim();
+    if(v){ input.value=""; chat.misses=0; sendTalk(v); }
+    else if(chat.live && ++chat.misses<3) listen();   // quiet for a moment: keep listening
+    else { chat.live=false; setStatus("idle"); }
+  };
+  try{ rec.start(); }catch(_){ rec=null; chat.live=false; setStatus("idle"); }
 }
 
 /* ---------- One tap handler for everything ---------- */
@@ -687,11 +723,11 @@ $app.addEventListener("click", e=>{
   const a=b.dataset.act;
   if(actx && actx.state==="suspended") actx.resume();
   switch(a){
-    case "home": try{speechSynthesis.cancel()}catch(_){} if(rec) rec.abort(); home(); break;
+    case "home": stopLive(); home(); break;
     case "talk": talk(); break;
     case "opt": sendTalk(b.dataset.say); break;
-    case "mic": toggleMic(b); break;
-    case "lang": chat.lang = chat.lang==="ja-JP" ? "en-US" : "ja-JP"; renderTalk(); break;
+    case "mic": chat.live ? stopLive() : startLive(); break;
+    case "lang": chat.lang = chat.lang==="ja-JP" ? "en-US" : "ja-JP"; if(chat.live){ stopLive(); startLive(); } renderTalk(); break;
     case "replay": { const m=chat.msgs[+b.dataset.n]; if(m && m.data) say(m.data.jp); break; }
     case "cword":
       document.querySelectorAll(".chat .mean").forEach(m=>m.remove());

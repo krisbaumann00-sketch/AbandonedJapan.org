@@ -13,7 +13,8 @@ Tap colorful blocks to build real Japanese sentences, hear them spoken, and earn
 
 ## Talk with Neko-sensei 🐱💬
 A real conversation partner powered by Claude. It understands Japanese, romaji, English or a mix, even with mistakes.
-- **Speak** with the 🎤 button (choose 日本語 or English), **type**, or just **tap** one of the three ready-made answers.
+- **Talk hands-free:** tap 🎤 once. Neko-sensei listens, answers out loud, then listens again by itself, like a real conversation. Tap ⏹ to stop (it also stops after a few quiet moments). Choose 日本語 or English for what you'll say.
+- Or **type**, or just **tap** one of the ready-made answers.
 - Every reply is broken into the same colored blocks, with the English meaning and a 💡 tip that explains one grammar point or gently fixes a mistake.
 - Replies are read aloud. Tap 🔊 to hear one again, or tap any block to hear that word and see its meaning.
 
