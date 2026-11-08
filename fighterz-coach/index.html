@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>FighterZ Coach</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one-column coaching app; sticky scouter header, bottom tab bar on phones, side rail on wide screens. */
+:root{
+  --bg:#eef1f8; --surface:#ffffff; --surface-2:#e3e8f3; --line:#cdd5e6;
+  --fg:#141a2e; --muted:#566079;
+  --ki:#e8590c; --ki-ink:#ffffff; --ki-soft:#ffe3d1;
+  --aura:#2f6fe4; --aura-soft:#dbe6fd;
+  --good:#1f8f4e; --warn:#b7791f; --bad:#c53030;
+  --font-display:"Bungee","Arial Black",Impact,sans-serif;
+  --font-body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1122; --surface:#161c33; --surface-2:#1f2744; --line:#2c365a;
+  --fg:#e9ecf7; --muted:#9aa4c4;
+  --ki:#ff7a2e; --ki-ink:#1a0d03; --ki-soft:#3a2214;
+  --aura:#6d9cff; --aura-soft:#1c2a52;
+  --good:#4cc47f; --warn:#e3b04b; --bad:#ff6b6b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1122; --surface:#161c33; --surface-2:#1f2744; --line:#2c365a;
+  --fg:#e9ecf7; --muted:#9aa4c4;
+  --ki:#ff7a2e; --ki-ink:#1a0d03; --ki-soft:#3a2214;
+  --aura:#6d9cff; --aura-soft:#1c2a52;
+  --good:#4cc47f; --warn:#e3b04b; --bad:#ff6b6b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3{text-wrap:balance;line-height:1.2;margin:0}
+h2{font-family:var(--font-display);font-weight:400;font-size:1.35rem;letter-spacing:.01em}
+h3{font-size:1.05rem;font-weight:700}
+p{margin:0}
+.mono,code,kbd{font-family:var(--font-mono);font-size:.88em}
+kbd{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:0 .35em;white-space:nowrap}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--aura);outline-offset:2px}
+a{color:var(--aura)}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1000px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--font-display);font-size:1.2rem;letter-spacing:.02em;color:var(--fg);display:flex;align-items:center;gap:8px}
+.brand .dot{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffd27a,var(--ki) 60%,#a33b00);box-shadow:0 0 0 3px var(--ki-soft)}
+.scouter{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--font-mono);font-size:.8rem;color:var(--muted)}
+.scouter b{color:var(--ki);font-size:1.05rem}
+.pl-bar{width:90px;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+.pl-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ki),#ffc14d)}
+
+.shell{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 110px;display:grid;gap:18px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;text-decoration:none;color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a[aria-current="page"]{color:var(--ki)}
+@media (min-width:900px){
+  nav.tabs{top:calc(env(safe-area-inset-top,0px) + 58px);bottom:auto;left:max(16px,calc(50% - 640px));right:auto;width:110px;grid-template-columns:1fr;border:1px solid var(--line);border-radius:var(--r);padding:6px 0}
+  .shell{padding-left:150px;max-width:1150px;padding-bottom:40px}
+}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;min-width:0}
+.eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface-2);border-radius:8px;padding:10px 12px}
+.stat .v{font-family:var(--font-mono);font-weight:700;font-size:1.35rem;font-variant-numeric:tabular-nums}
+.stat .k{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--aura)}
+.btn.pri{background:var(--ki);border-color:var(--ki);color:var(--ki-ink)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:4px 10px;font-size:.85rem}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 10px;font-size:.75rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.chip.exec{background:var(--ki-soft);color:var(--ki);border-color:transparent}
+.chip.def{background:var(--aura-soft);color:var(--aura);border-color:transparent}
+.chip.on{background:var(--ki);color:var(--ki-ink);border-color:var(--ki)}
+button.chip{cursor:pointer}
+input[type=text],input[type=number],input[type=date],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:70px;resize:vertical}
+label.f{display:grid;gap:4px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.form{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.form .wide{grid-column:1/-1}
+
+.session{display:grid;gap:10px}
+.block{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px;border-radius:8px;background:var(--surface-2);border-left:4px solid var(--line)}
+.block.done{opacity:.6}
+.block.cat-exec{border-left-color:var(--ki)} .block.cat-def{border-left-color:var(--aura)}
+.block.cat-off{border-left-color:var(--bad)} .block.cat-neutral{border-left-color:var(--good)}
+.block.cat-team{border-left-color:var(--warn)} .block.cat-review,.block.cat-move{border-left-color:var(--muted)}
+.block input[type=checkbox]{width:22px;height:22px;margin-top:2px;accent-color:var(--ki)}
+.mins{font-family:var(--font-mono);font-size:.85rem;color:var(--muted);white-space:nowrap}
+.linkish{background:none;border:0;padding:0;color:var(--fg);font-weight:700;text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+
+.drill{display:grid;gap:8px}
+.drill ol{margin:0;padding-left:1.2em;display:grid;gap:3px}
+.pass{background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:.92rem}
+.tip{border-left:3px solid var(--ki);padding-left:10px;font-size:.92rem}
+details.acc{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+details.acc>summary{cursor:pointer;padding:14px 16px;font-weight:700;list-style:none;display:flex;gap:10px;align-items:center;justify-content:space-between}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary::after{content:"+";font-family:var(--font-mono);color:var(--muted)}
+details.acc[open]>summary::after{content:"–"}
+details.acc>.body{padding:0 16px 16px;display:grid;gap:10px;max-width:72ch}
+.body ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+.phase{display:grid;gap:10px}
+.phase-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.meter{height:10px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ki);transition:width .3s}
+.ms{display:flex;gap:10px;align-items:flex-start}
+.ms input{width:20px;height:20px;margin-top:2px;accent-color:var(--ki);flex:none}
+.ki-bars{display:flex;gap:3px}
+.ki-bars i{width:14px;height:10px;border-radius:2px;background:var(--surface-2);border:1px solid var(--line)}
+.ki-bars i.f{background:var(--ki);border-color:var(--ki)}
+.bar-h{display:grid;grid-template-columns:minmax(120px,40%) 1fr auto;gap:8px;align-items:center;font-size:.9rem}
+.bar-h .t{height:10px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.bar-h .t i{display:block;height:100%;background:var(--bad)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-weight:600;z-index:20;font-size:.9rem}
+.save-state{font-size:.72rem;color:var(--muted)}
+.empty{padding:16px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);text-align:center}
+.hero{display:grid;gap:6px}
+.hero h1{font-family:var(--font-display);font-weight:400;font-size:clamp(1.6rem,5vw,2.3rem);letter-spacing:.01em}
+.hero h1 span{color:var(--ki)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top"><div class="top-in">
+  <div class="brand"><span class="dot" aria-hidden="true"></span>FighterZ Coach</div>
+  <div class="scouter" title="Power level grows with finished drills, sessions and logged sets">
+    <span>PWR</span><b id="pl">0</b><span class="pl-bar"><i id="plbar" style="width:0%"></i></span><span id="rank">Rookie</span>
+  </div>
+</div></header>
+
+<nav class="tabs" aria-label="Sections">
+  <a href="#today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Today</a>
+  <a href="#drills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Drills</a>
+  <a href="#plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Path</a>
+  <a href="#log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l3 3v15H5z"/><path d="M9 12l2 2 4-4"/></svg>Sets</a>
+  <a href="#combos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Combos</a>
+  <a href="#guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h7a3 3 0 013 3v13a2 2 0 00-2-2H4zM20 4h-5a3 3 0 00-1 .2"/></svg>Guide</a>
+</nav>
+
+<main class="shell" id="app"></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------------- Content ---------------- */
+const CATS={exec:"Execution",move:"Movement",def:"Defense",off:"Offense",neutral:"Neutral",team:"Team & Meter",review:"Review & Mental"};
+const ROSTER=["Android 16","Android 17","Android 18","Android 21","Android 21 (Lab Coat)","Bardock","Beerus","Broly","Broly (DBS)","Captain Ginyu","Cell","Cooler","Frieza","Gogeta (SS4)","Gogeta (SSGSS)","Gohan (Adult)","Gohan (Teen)","Goku","Goku (GT)","Goku (SSGSS)","Goku (Super Saiyan)","Goku (Ultra Instinct)","Goku Black","Hit","Janemba","Jiren","Kefla","Kid Buu","Krillin","Majin Buu","Master Roshi","Nappa","Piccolo","Super Baby 2","Tien","Trunks","Vegeta","Vegeta (SSGSS)","Vegeta (Super Saiyan)","Vegito (SSGSS)","Videl","Yamcha","Zamasu (Fused)"];
+
+const DRILLS=[
+// Execution
+{id:"warm",cat:"exec",phase:1,mins:5,name:"Motion-input warm-up",goal:"Clean special and super inputs on both sides before anything else.",setup:"Training mode, input display ON, dummy standing.",steps:["10× 236 (quarter-circle forward) special, facing right","10× 214 special, facing right","10× 236 super (236 + H+S or your character's super input)","Switch sides (swap with the dummy) and repeat"],pass:"No accidental normals or wrong specials in the last 10 of each.",tip:"Pros warm up their hands every session. Ten clean inputs beat fifty sloppy ones."},
+{id:"bnb",cat:"exec",phase:1,mins:10,name:"BnB 10-in-a-row",goal:"Your point character's main combo, fully consistent.",setup:"Training mode, dummy standing, your combo written in the Combos tab.",steps:["Do your midscreen BnB until you land it 10 times in a row","If you drop it, the count goes back to zero","Switch sides and do 10 more in a row","Log your best streak in the Combos tab"],pass:"10/10 on both sides. Until then, this drill stays in every session.",tip:"Top players can do their BnB tired, nervous and lagged. That only comes from streak practice, not from landing it once."},
+{id:"confirm",cat:"exec",phase:2,mins:10,name:"2L hit-confirm",goal:"Only go into a full combo when the first hits actually connect.",setup:"Dummy: Guard = Random. Stand close.",steps:["Start with 2L > 5L (or 2L > 2M)","If it hit: continue into your combo","If it was blocked: stop and stay safe (end the string, block, or call an assist)","Do 20 attempts"],pass:"16/20 correct choices (hit = combo, block = stop).",tip:"Watch the hit spark and the combo counter, not your hands. Pros never throw out a full unsafe string on block."},
+{id:"trials",cat:"exec",phase:1,mins:15,name:"Combo Challenge clears",goal:"Learn each team member's tools and links fast.",setup:"Main menu → Training → Combo Challenge.",steps:["Clear every challenge for your point character","Then do your mid and anchor","Note any challenge you find useful into the Combos tab"],pass:"All challenges cleared for your 3 characters.",tip:"Challenges show what the character can do. Real match routes are often simpler and more consistent; keep both in your notebook."},
+{id:"dhc",cat:"exec",phase:2,mins:8,name:"Super-to-super tag (DHC)",goal:"Cancel one character's super into a partner's super for damage and a safe tag.",setup:"Meter: Infinite. Dummy standing.",steps:["Combo into your point character's super","While the super is hitting, input your partner's super (direction + their assist button, as shown in your command list)","Do it with both partners, both sides"],pass:"10/10 per partner.",tip:"Pros use this to bring their strongest character in safely at the end of a combo, or to finish a round."},
+{id:"meterroute",cat:"exec",phase:2,mins:10,name:"Meter routes: 1 bar vs 3 bars",goal:"Know exactly what damage each amount of meter buys.",setup:"Meter: set to 1, then 3, then 7.",steps:["Land your BnB ending in a level 1 super; note damage","Same combo ending in level 3; note damage","With Sparking Blast active; note damage","Write all three in the Combos tab"],pass:"You can say from memory how much damage 1 bar vs 3 bars does.",tip:"Kill-confirm thinking: pros check the opponent's health and spend only what it takes to kill."},
+{id:"corner",cat:"exec",phase:2,mins:10,name:"Corner route",goal:"Max damage plus a good knockdown when the opponent is in the corner.",setup:"Put the dummy in the corner.",steps:["Do your corner BnB 10 times in a row","Finish with an ender that leaves them close to you (for okizeme)","Repeat on the other corner"],pass:"10/10 both corners.",tip:"Corner carry and corner routes win rounds. Know which of your enders carry them to the wall."},
+{id:"sparkroute",cat:"exec",phase:3,mins:8,name:"Sparking Blast extension",goal:"Extend a combo with Sparking Blast for a kill or a comeback.",setup:"Sparking Blast available (use Training settings).",steps:["Start your BnB, activate Sparking Blast mid-combo (default L+M+H+S)","Finish with your best meter ender","Practice with 3, 2 and 1 characters left (Sparking lasts longer the fewer you have)"],pass:"8/10 landed.",tip:"Sparking is once per match. Pros save it for a guaranteed kill or for their last character."},
+// Movement
+{id:"iad",cat:"move",phase:2,mins:6,name:"Low instant air dash",goal:"Air dash as close to the ground as possible for fast overheads.",setup:"Dummy crouching, Guard = None.",steps:["Jump forward and air dash immediately (9 then 6, or jump + dash button)","Hit with your fastest jumping normal as low as possible","Then land and do 2L"],pass:"Your jump attack hits the crouching dummy 8/10 times.",tip:"The lower the air dash, the harder it is to react to. This is the base of most DBFZ offense."},
+{id:"spacing",cat:"move",phase:2,mins:6,name:"Dash-in / back-dash spacing",goal:"Know your max 2M and 5H ranges by feel.",setup:"Dummy standing, both at round start position.",steps:["Dash in once and do 2M. Did it reach?","Find the farthest spot where 2M still hits","Do the same with 5H","Back dash and walk-back to reset; repeat"],pass:"You can stop at max 2M range without thinking 8/10 times.",tip:"Neutral is a spacing game. Pros hover just outside the opponent's range and punish what whiffs."},
+// Defense
+{id:"aa",cat:"def",phase:1,mins:10,name:"Anti-air the Super Dash",goal:"React to Super Dash with 2H every time.",setup:"Dummy → Record: Super Dash (H+S) at you. Playback: Random, with random wait time. Stand at half screen.",steps:["Play the recording","When the Super Dash comes, press 2H","If it connects, follow up with your anti-air combo","30 reps"],pass:"24/30 (80%) anti-airs.",tip:"Super Dash is the most common way players get in. Strong players punish it on reaction, so lower-level players stop using it on them."},
+{id:"hilo",cat:"def",phase:1,mins:8,name:"Block low, react high",goal:"Default to down-back, stand up only for overheads.",setup:"Dummy Record: a mix of 2L, 2M and a jump-in attack. Playback Random.",steps:["Hold down-back the whole time","Stand (hold back) only when you see the jump or the overhead start","20 reps"],pass:"16/20 blocked.",tip:"Lows are faster than you can react to; overheads usually aren't. That's why everyone defaults to crouch block."},
+{id:"lr",cat:"def",phase:3,mins:10,name:"Left/right & Vanish defense",goal:"Block crossups and Vanish (which teleports behind you).",setup:"Dummy Record: three slots — crossup jump-in, normal jump-in, Vanish (M+H). Playback Random.",steps:["Block each one; when the Vanish happens, switch the direction you hold","Watch the character's position, not the camera","20 reps"],pass:"14/20 blocked.",tip:"Many crossups can't be fully reacted to. The goal is to make it hard for them, then use Reflect or Guard Cancel to stop the mixup."},
+{id:"reflect",cat:"def",phase:3,mins:8,name:"Z Reflect timing",goal:"Push the opponent away mid-pressure.",setup:"Dummy Record: a long blockstring (5L 5M 2M 5H). Playback.",steps:["Block the first hit","Reflect (back + S while blocking) on the second or third hit","Check: did they get pushed out?"],pass:"8/10 reflects on the chosen hit.",tip:"Reflect is free (no meter) but has risk if you read wrong. Pros reflect predictable strings, then reset neutral on their terms."},
+{id:"gc",cat:"def",phase:3,mins:8,name:"Guard Cancel out of the corner",goal:"Escape corner pressure with your assist.",setup:"Dummy in front of you, you in the corner. Record their corner pressure.",steps:["Block the string","Guard Cancel: forward + assist button while blocking (costs 1 bar)","Try with both assists; see which one is safer"],pass:"8/10 successful Guard Cancels.",tip:"Your partner comes in when you Guard Cancel. Use it to save a low-health character or break a deadly corner situation."},
+{id:"dr",cat:"def",phase:3,mins:5,name:"Dragon Rush tech",goal:"Break throws instead of eating a full combo.",setup:"Dummy Record: blockstring into Dragon Rush (L+M). Playback Random with/without the throw.",steps:["Block the string","When you see the Dragon Rush, input L+M yourself to tech","Don't throw out L+M on every gap (you'll get counter-hit)"],pass:"7/10 teched.",tip:"Check the Training mode defense settings and your command list for your version's exact tech window."},
+{id:"wake",cat:"def",phase:2,mins:8,name:"Wake-up decisions",goal:"Stop getting opened up when you get knocked down.",setup:"Dummy Record: knockdown, then a meaty 2L or jump-in.",steps:["Try tech rolling (press a button / direction as you land) vs. staying down","Block the meaty","Note which option keeps you safest for your character"],pass:"You block the meaty 8/10.",tip:"Vary your wake-up timing in matches. Being predictable on wake-up is how good players lose to great ones."},
+// Offense
+{id:"string",cat:"off",phase:3,mins:10,name:"Frame traps",goal:"Make the opponent press a button and get counter-hit.",setup:"Dummy Record: pressing 2L after blocking. Guard: after first hit.",steps:["Do a blockstring with a small gap (e.g. 5L 5M, short pause, 2M)","The dummy presses in the gap and gets counter-hit","Learn which gaps your character can safely leave"],pass:"You can name 2 frame traps for your point character.",tip:"Check frame data on the character's page in your community wiki. Plus on block = your turn."},
+{id:"lockdown",cat:"off",phase:4,mins:12,name:"Assist lockdown mixups",goal:"Use an assist to freeze the opponent, then go left/right or high/low.",setup:"Your point + a lockdown assist (a beam or multi-hit assist).",steps:["Call the assist while you're on the opponent","During the assist, do: jump-over crossup, or low 2L, or IAD overhead","Record the dummy blocking 'one way' to check each option opens them"],pass:"Three working mixups from the same setup.",tip:"Pros build 2–3 options from one assist call so the opponent can't guess. One option is not a mixup."},
+{id:"oki",cat:"off",phase:4,mins:10,name:"Okizeme after your combo ender",goal:"Keep pressure after a knockdown.",setup:"Dummy: Tech = Random after knockdown.",steps:["End your BnB with your best knockdown","Dash or super-jump in on their wake-up with a meaty attack","Practice vs. tech forward, tech back and no tech"],pass:"You meaty all three wake-up options 7/10.",tip:"A good ender + oki loop is how pros turn one hit into a whole character."},
+{id:"incoming",cat:"off",phase:4,mins:10,name:"Incoming-character mixups",goal:"Open up the next character when one dies.",setup:"Training: set dummy health low so you can kill quickly.",steps:["Kill the point character with your combo","When the next character comes in, use an assist + left/right setup","Practice from midscreen and from the corner"],pass:"One setup each from midscreen and corner.",tip:"Top DBFZ players chain kills together this way. Losing one character to a sloppy incoming can turn a round."},
+// Neutral
+{id:"ki",cat:"neutral",phase:2,mins:8,name:"Ki blast + assist screen control",goal:"Make the opponent come to you on your terms.",setup:"Dummy Record: random Super Dash and jump forward.",steps:["Use 5S/j.S and an assist to cover the screen","Anti-air or 2H whatever comes through","Don't stay full screen forever: walk forward after each block"],pass:"You stop the dummy's approach 7/10.",tip:"Ki blasts are blocked by Super Dash on some characters' paths; learn which of yours can be dashed through."},
+{id:"whiff",cat:"neutral",phase:3,mins:8,name:"Whiff punishes",goal:"Punish attacks that miss.",setup:"Dummy Record: 5H or 2M thrown out at a range where it misses you.",steps:["Stay just outside their range","As soon as you see it whiff, dash + 2M or 5H into combo","20 reps"],pass:"14/20 punished.",tip:"Strong neutral is mostly patience. Let them whiff, then make them pay."},
+{id:"punishsd",cat:"neutral",phase:2,mins:6,name:"Punish blocked Super Dash",goal:"Know your fastest punish when you block a Super Dash.",setup:"Dummy Record: Super Dash at you. Guard: you block it.",steps:["Block it","Try 2L, 5L, 2H and your fastest special as punishes","Keep the one that works most reliably"],pass:"You know your punish and land it 7/10.",tip:"The game rewards players who punish what's unsafe. Write down your punish in the Combos tab."},
+// Team & meter
+{id:"assists",cat:"team",phase:2,mins:10,name:"Assist homework",goal:"Know what each assist (A, B, C) on your team actually does.",setup:"Character select: try each assist type for your mid and anchor.",steps:["Call each assist in neutral, in pressure, and in a combo","Write one line per assist: what it's for","Pick the two that fit your point character's game plan"],pass:"One-line purpose for every assist on your team.",tip:"Most pro teams pick assists for one of three jobs: lockdown (pressure), extension (more combo damage), or zoning/neutral control."},
+{id:"order",cat:"team",phase:4,mins:15,name:"Team order test",goal:"Find the order that wins you the most.",setup:"Ranked or casual sets.",steps:["Play 10 matches with your team in order A","Play 10 matches in order B (swap point and anchor)","Log both in the Sets tab"],pass:"You have data for two orders and a reason for your choice.",tip:"Strong point, meter-building middle, anchor that uses lots of meter is a common shape."},
+{id:"meter",cat:"team",phase:4,mins:5,name:"Meter budgeting",goal:"Never spend meter without a reason.",setup:"While watching your own replay.",steps:["Count every bar you spent","For each one: did it kill, save a character, or get a hit? If not, it was wasted","Set a rule for next session (e.g. 'no Vanish in neutral')"],pass:"Fewer than 2 wasted bars per match.",tip:"Max meter is 7 bars. Level 3 supers cost 3, Vanish and Guard Cancel cost 1 each."},
+// Review & mental
+{id:"vod",cat:"review",phase:1,mins:10,name:"Review one loss",goal:"Find what actually lost you the match.",setup:"Replays → open your last loss.",steps:["Watch at normal speed once","Find 3 moments where you lost the life lead","Tag each one in the Sets tab (e.g. 'Dropped combo')"],pass:"3 tagged moments.",tip:"Pros watch their losses more than their wins. Your Today plan uses these tags to pick drills."},
+{id:"pro",cat:"review",phase:2,mins:15,name:"Study a pro match",goal:"Steal one idea from a top player.",setup:"Search YouTube for a top-8 set with your character (see Guide → Study the pros).",steps:["Watch one game","Note: their BnB, when they call assists, when they spend meter","Try one thing you saw in training mode right after"],pass:"1 new idea added to your notebook.",tip:"Copy routes and habits first. Understanding why comes from trying them yourself."},
+{id:"sets",cat:"review",phase:2,mins:20,name:"Focused sets",goal:"Play real opponents with one goal.",setup:"Ranked, lobby, or local. Wired connection.",steps:["Pick one focus (e.g. anti-air every Super Dash)","Play first-to-3 sets","Log each set in the Sets tab with loss reasons"],pass:"3 logged sets with notes.",tip:"Grinding without a focus makes you better slowly. Grinding with one makes you better fast."},
+{id:"tilt",cat:"review",phase:1,mins:3,name:"Reset routine",goal:"Stay in control after a bad loss.",setup:"Between matches.",steps:["After 2 losses in a row: stand up, 2 minutes away","Say one thing you'll change next match","Come back and play that one thing"],pass:"You use it every time you lose twice in a row.",tip:"Composure wins brackets. Many top players have a fixed routine between games."}
+];
+
+const PHASES=[
+{n:1,name:"Foundation",weeks:"Weeks 1–3",focus:["exec","def","review"],desc:"Learn the system, pick a team, block properly, and own one combo.",ms:["Finish the in-game tutorial and read the Guide's Notation and Mechanics sections","Pick a team of 3 and their assists (write it in the Combos tab)","Clear Combo Challenges for your point character","BnB 5/10 on both sides","Anti-air Super Dash 15/30","Review one of your losses and tag it"]},
+{n:2,name:"Execution",weeks:"Weeks 4–6",focus:["exec","move","neutral"],desc:"Make your combos boring. Know your damage per bar.",ms:["BnB 10/10 on both sides","2L hit-confirm 16/20","Corner route 10/10","Super-to-super tag (DHC) with both partners","Know your 1-bar and 3-bar damage from memory","Low instant air dash hits crouchers 8/10"]},
+{n:3,name:"Defense",weeks:"Weeks 7–9",focus:["def","neutral"],desc:"Stop losing to the same things. Make your opponent work for every hit.",ms:["Anti-air Super Dash 24/30","Reflect a blockstring on the chosen hit 8/10","Guard Cancel out of the corner 8/10","Tech Dragon Rush 7/10","Block left/right and Vanish mixups 14/20","Whiff-punish drill 14/20"]},
+{n:4,name:"Offense & Team",weeks:"Weeks 10–13",focus:["off","team"],desc:"Build a real game plan: pressure, mixups, meter, and team order.",ms:["Two frame traps for your point character","Three mixups from one assist call","Okizeme after your main ender","Incoming-character setup midscreen and corner","Purpose written for every assist","Tested two team orders over 10 matches each"]},
+{n:5,name:"Competition",weeks:"Week 14 onward",focus:["review","off","def"],desc:"Compete every week, review everything, and climb toward majors.",ms:["Enter an online or local bracket every week for a month","Write matchup notes for the 10 characters you face most","Win a set against someone ranked above you","Play a session on PS5/PC (the rollback versions used at majors)","Attend a regional or major tournament","Keep a 4-week streak of 5+ sessions per week"]}
+];
+
+const LOSS_TAGS=[
+{t:"Dropped combo",c:"exec"},
+{t:"Super Dash / jump-ins got in",c:"def"},
+{t:"Opened up by left/right",c:"def"},
+{t:"Couldn't block lows/overheads",c:"def"},
+{t:"Couldn't open them up",c:"off"},
+{t:"Lost neutral / spacing",c:"neutral"},
+{t:"Wasted meter / Sparking",c:"team"},
+{t:"Bad assist calls",c:"team"},
+{t:"Panicked / mashed",c:"review"},
+{t:"Didn't know the matchup",c:"review"},
+{t:"Lag / connection",c:null}
+];
+
+const GUIDE=[
+{h:"How to use this coach",b:`<p>Every day, open <b>Today</b>. It builds a session from the drill library based on your current phase on the <b>Path</b> and the loss reasons you log under <b>Sets</b>. Tick each block when it's done. Finished sessions add to your streak and power level.</p>
+<ul><li><b>Drills</b>: the full library, with setup, steps and a pass mark for each.</li><li><b>Path</b>: five phases from first steps to competing. Tick milestones as you hit them; when a phase is done, move to the next.</li><li><b>Sets</b>: log every set. Tag why you lost. The coach turns your most common loss reason into tomorrow's focus.</li><li><b>Combos</b>: your team, your routes and your consistency streaks.</li></ul>
+<p class="muted small">Your data saves to your account when you're signed in to claude.ai, and to this browser as a backup. Use Backup at the bottom of Sets to copy it out.</p>`},
+{h:"Notation (how pros write inputs)",b:`<p>Directions use the numpad, as if your character faces right:</p>
+<div class="tbl"><table><tr><td class="mono">7 8 9</td><td>up-back, up, up-forward</td></tr><tr><td class="mono">4 5 6</td><td>back, neutral, forward</td></tr><tr><td class="mono">1 2 3</td><td>down-back, down, down-forward</td></tr></table></div>
+<ul><li><kbd>L</kbd> <kbd>M</kbd> <kbd>H</kbd> = light, medium, heavy. <kbd>S</kbd> = special (ki blast). <kbd>A1</kbd> <kbd>A2</kbd> = assist buttons.</li><li><kbd>5M</kbd> = standing medium. <kbd>2M</kbd> = crouching medium. <kbd>j.H</kbd> = jumping heavy. <kbd>j.2H</kbd> = jumping down + heavy.</li><li><kbd>236</kbd> = quarter-circle forward. <kbd>214</kbd> = quarter-circle back. <kbd>623</kbd> = dragon punch motion.</li><li><kbd>&gt;</kbd> = cancel into the next move. <kbd>sj.</kbd> = super jump. <kbd>SD</kbd> = Super Dash. <kbd>IAD</kbd> = instant air dash.</li></ul>`},
+{h:"Universal mechanics",b:`<p>Every character shares these. Default shortcuts below; you can remap buttons, and your in-game Command List is the final word for your version.</p>
+<div class="tbl"><table><tr><th>Tool</th><th>Input</th><th>Use</th></tr>
+<tr><td>Super Dash</td><td class="mono">H+S</td><td>Homing flying approach. Beats ki blasts on its path, loses to anti-air <kbd>2H</kbd>.</td></tr>
+<tr><td>Dragon Rush</td><td class="mono">L+M</td><td>The game's throw. Beats blocking. Can be teched.</td></tr>
+<tr><td>Vanish</td><td class="mono">M+H</td><td>Teleport behind and hit. 1 bar. Combo extender, risky in neutral.</td></tr>
+<tr><td>Z Reflect</td><td class="mono">4+S while blocking</td><td>Pushes the attacker away. No meter.</td></tr>
+<tr><td>Guard Cancel</td><td class="mono">6+A1/A2 while blocking</td><td>Partner tags in with an attack. 1 bar.</td></tr>
+<tr><td>Sparking Blast</td><td class="mono">L+M+H+S</td><td>Once per match. Boosts damage, recovers red health, extends combos. Lasts longer with fewer characters left.</td></tr>
+<tr><td>Ki Charge</td><td class="mono">hold (see Command List)</td><td>Builds meter slowly. Only when it's safe.</td></tr>
+<tr><td>2H</td><td class="mono">2H</td><td>Universal anti-air launcher. Your answer to Super Dash and jumps.</td></tr>
+<tr><td>5H</td><td class="mono">5H</td><td>Homing attack that tracks the opponent; common combo piece.</td></tr>
+<tr><td>j.2H</td><td class="mono">j.2H</td><td>Downward air attack used to bounce opponents in combos.</td></tr></table></div>
+<p><b>Meter:</b> up to 7 bars. Level 1 supers cost 1, level 3 supers cost 3. <b>Assists:</b> each character picks A, B or C before the match. <b>Red health:</b> damage partly recovers while a character is tagged out.</p>`},
+{h:"Team building",b:`<p>DBFZ is 3v3. Good teams are a game plan, not three favorite characters.</p>
+<ul><li><b>Point</b>: starts the match. Wants a strong assist behind it and builds meter. Usually your best offense.</li><li><b>Mid</b>: often there for its assist (lockdown or combo extension). Should also hold its own when your point dies.</li><li><b>Anchor</b>: comes in last with the most meter and Sparking Blast. Characters that turn meter into big damage shine here.</li></ul>
+<p>Pick assists for one job each: <b>lockdown</b> (keeps them blocking so you can mix up), <b>extension</b> (adds damage to combos), or <b>neutral</b> (beams and projectiles that control space). Write your team on the Combos tab and test two orders (see the Team order drill).</p>`},
+{h:"Neutral",b:`<ul><li>Neutral is the moment before anyone gets hit. Win it with spacing, not button presses.</li><li>Anti-air every Super Dash with <kbd>2H</kbd>. If you do, people stop doing it and have to approach in ways you can see.</li><li>Use ki blasts and beam assists to make them move, then punish the move.</li><li>Stay just outside their best button's range; punish whiffs.</li><li>Don't Super Dash into someone who's waiting for it. Mix up how you approach: walk, dash, IAD, jump, assist.</li></ul>`},
+{h:"Offense",b:`<ul><li><b>Hit-confirm</b>: only go into a full combo when the starter hit. On block, stop safe.</li><li><b>High/low</b>: low attacks must be blocked crouching, air attacks standing. Low IADs make the overhead hard to see.</li><li><b>Left/right</b>: crossup jump-ins, assists that hold them while you switch sides, and Vanish.</li><li><b>Throw</b>: Dragon Rush beats an opponent who just blocks.</li><li><b>Frame traps</b>: leave a small gap; if they press, they get counter-hit.</li><li><b>Okizeme</b>: after your ender, attack their wake-up with a meaty hit.</li><li><b>Incoming mixups</b>: when you kill a character, the next one has to land somewhere. Be there with an assist and a mixup.</li></ul>`},
+{h:"Defense",b:`<ul><li>Default to crouch-block (down-back). Stand only for overheads and air attacks.</li><li>Reflect predictable blockstrings to push them out.</li><li>Guard Cancel when you're in the corner or your character is about to die.</li><li>Tech Dragon Rush with <kbd>L+M</kbd> when you see it, but not on every gap.</li><li>Vary your wake-up (tech forward, back, or stay down) so they can't time their meaty.</li><li>Save Sparking Blast for when it wins the round or saves your last character.</li></ul>`},
+{h:"Training mode setup",b:`<ul><li><b>Input display</b>: ON for every execution drill.</li><li><b>Dummy Record</b>: record the move you want to practice against, set playback to Random, and add random wait time.</li><li><b>Guard</b>: Random for hit-confirm practice; After First Hit for frame traps.</li><li><b>Meter / Health</b>: set exact values to practice kill confirms.</li><li><b>Side switch</b>: practice every drill on both sides. Most drops in matches happen on your weaker side.</li></ul>`},
+{h:"Playing on Switch 2",b:`<ul><li>The Switch 2 version is based on the older console versions and uses delay-based netcode, not the rollback netcode on PS5, Xbox Series and PC. There's no crossplay between them.</li><li>Play online <b>wired</b> (USB LAN adapter on the dock) and prefer opponents close to you. Lag hurts reactions like anti-airs.</li><li>Use the TV's Game Mode and turn off picture processing to cut input lag.</li><li>A Pro Controller, a fight stick or a leverless controller is far more consistent than Joy-Con for motion inputs. Pick one and stick with it.</li><li>Big tournaments (Evo, majors) usually run on PS5 or PC. Before you travel, play on that platform so the controller, timing and netcode feel normal.</li></ul>`},
+{h:"Path to pro",b:`<ul><li><b>Weekly</b>: 5 focused sessions (this app), plus sets against people better than you.</li><li><b>Brackets</b>: find online and local DBFZ events on start.gg and the DBFZ community Discords. Enter one every week.</li><li><b>Results</b>: placing at locals → regionals → majors is how players get noticed by teams and sponsors.</li><li><b>Reputation</b>: stream or post your sets, be good to play with, and keep showing up.</li><li><b>Notes</b>: keep matchup notes for every character you lose to. Pros have answers prepared, not improvised.</li></ul>`},
+{h:"Study the pros",b:`<p>Search these players with “DBFZ” on YouTube or Twitch for top-8 sets: SonicFox, GO1, Kazunoko, Fenritti, Hikari, Shanks, Dekillsage, Wawa. Watch for:</p><ul><li>Their BnB on your character (write it in Combos).</li><li>When they call assists in neutral vs. pressure.</li><li>How much meter they keep before spending it.</li><li>How they handle a lead: do they slow down or keep attacking?</li></ul><p class="muted small">Teams and characters shift between patches. Pick sets from the last year.</p>`}
+];
+
+/* ---------------- State ---------------- */
+const KEY="fzcoach.v1";
+const blank=()=>({phase:1,mins:60,ms:{},sessions:{},drillLog:[],sets:[],combos:[],team:{point:"",mid:"",anchor:"",assists:""},updatedAt:0});
+let S=blank();
+try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+let remote=null, saveTimer=null, saveMsg="Saved on this device";
+function save(){
+  S.updatedAt=Date.now();
+  try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+  clearTimeout(saveTimer);
+  if(remote){saveMsg="Saving…";paintSave();saveTimer=setTimeout(async()=>{try{await remote.set({json:JSON.stringify(S),updatedAt:S.updatedAt});saveMsg="Saved to your account";}catch(e){saveMsg="Saved on this device only";}paintSave();},1200);}
+  updatePL();
+}
+function paintSave(){document.querySelectorAll(".save-state").forEach(n=>n.textContent=saveMsg);}
+(async()=>{
+  try{
+    if(!window.claude||!claude.use) return;
+    const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!db||!user) return;
+    const id=await user.id(); if(!id) return;
+    const ref=db.doc("data/users/"+id+"/state");
+    const snap=await ref.get();
+    remote=ref;
+    if(snap.exists){const d=snap.data(); if(d&&d.updatedAt>S.updatedAt){S=Object.assign(blank(),JSON.parse(d.json)); try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} render();}}
+    saveMsg="Saved to your account"; paintSave();
+    if(!snap.exists && S.updatedAt) save();
+  }catch(e){}
+})();
+
+/* ---------------- Helpers ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const D=id=>DRILLS.find(d=>d.id===id);
+function toast(t){const n=$("#toast");n.textContent=t;n.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>n.hidden=true,1800);}
+function hash(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};}
+
+function power(){
+  const done=Object.values(S.sessions).reduce((a,s)=>a+s.done.length,0);
+  const full=Object.values(S.sessions).filter(s=>s.complete).length;
+  const ms=Object.values(S.ms).filter(Boolean).length;
+  const wins=S.sets.filter(s=>s.result==="W").length;
+  return done*15+full*60+ms*120+S.sets.length*20+wins*20+S.combos.length*10;
+}
+const RANKS=[[0,"Rookie"],[500,"Fighter"],[1500,"Contender"],[3500,"Challenger"],[7000,"Elite"],[12000,"Tournament Ready"]];
+function updatePL(){
+  const p=power(); let i=0; while(i<RANKS.length-1&&p>=RANKS[i+1][0]) i++;
+  const lo=RANKS[i][0], hi=RANKS[i+1]?RANKS[i+1][0]:lo+5000;
+  $("#pl").textContent=p.toLocaleString(); $("#rank").textContent=RANKS[i][1];
+  $("#plbar").style.width=Math.min(100,(p-lo)/(hi-lo)*100)+"%";
+}
+function streak(){
+  let n=0; const d=new Date();
+  if(!(S.sessions[today()]||{}).complete) d.setDate(d.getDate()-1);
+  for(;;){const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); if((S.sessions[k]||{}).complete){n++;d.setDate(d.getDate()-1);}else break;}
+  return n;
+}
+function lossCounts(n=15){
+  const c={}; S.sets.slice(-n).forEach(s=>(s.tags||[]).forEach(t=>c[t]=(c[t]||0)+1));
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]);
+}
+function focusCat(){
+  const top=lossCounts().find(([t])=>{const x=LOSS_TAGS.find(l=>l.t===t);return x&&x.c;});
+  if(top) return {cat:LOSS_TAGS.find(l=>l.t===top[0]).c,why:`your most common recent loss reason is “${top[0]}”`};
+  const ph=PHASES[S.phase-1]; return {cat:ph.focus[0],why:`you're in the ${ph.name} phase`};
+}
+
+/* Session builder: stable per day, reshuffled on demand */
+function buildSession(seedExtra=0){
+  const mins=S.mins, f=focusCat(), ph=PHASES[S.phase-1];
+  const r=rng(hash(today()+":"+seedExtra+":"+S.phase+":"+mins+":"+f.cat));
+  const pool=c=>DRILLS.filter(d=>d.cat===c&&d.phase<=Math.max(S.phase,1)+0);
+  const pick=(c,used)=>{const p=pool(c).filter(d=>!used.has(d.id)); if(!p.length) return null; return p[Math.floor(r()*p.length)];};
+  const plan=[["exec","warm"]];
+  const slots={30:["focus","def"],60:["exec","focus","phase","review"],90:["exec","focus","focus2","phase","sets","review"]}[mins]||["exec","focus","phase","review"];
+  const used=new Set(["warm"]), ids=["warm"];
+  for(const s of slots){
+    let d=null;
+    if(s==="focus"||s==="focus2") d=pick(f.cat,used);
+    else if(s==="phase") d=pick(ph.focus[1]||ph.focus[0],used)||pick(ph.focus[0],used);
+    else if(s==="sets") d=D("sets");
+    else if(s==="review") d=used.has("vod")?null:D(S.sets.length?"vod":"pro")||null;
+    else if(s==="exec") d=(!used.has("bnb")&&D("bnb"))||pick("exec",used);
+    else d=pick(s,used);
+    if(!d||used.has(d.id)) d=pick("exec",used)||pick("def",used);
+    if(d){used.add(d.id);ids.push(d.id);}
+  }
+  return {ids,done:[],complete:false,focus:f.cat,why:f.why,seed:seedExtra};
+}
+function todaySession(){
+  const k=today();
+  if(!S.sessions[k]){S.sessions[k]=buildSession(0);}
+  return S.sessions[k];
+}
+
+/* ---------------- Views ---------------- */
+function vToday(){
+  const s=todaySession(); const total=s.ids.reduce((a,id)=>a+(D(id)?.mins||0),0);
+  const done=s.done.length, ph=PHASES[S.phase-1];
+  const wins=S.sets.filter(x=>x.result==="W").length;
+  return `
+  <section class="hero">
+    <div class="eyebrow">${new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})} · Phase ${ph.n}: ${ph.name}</div>
+    <h1>Today's <span>training</span></h1>
+    <p class="muted">Focus: <b style="color:var(--fg)">${CATS[s.focus]}</b>, because ${esc(s.why)}.</p>
+  </section>
+  <div class="stats">
+    <div class="stat"><div class="v">${streak()}</div><div class="k">Day streak</div></div>
+    <div class="stat"><div class="v">${Object.values(S.sessions).filter(x=>x.complete).length}</div><div class="k">Sessions</div></div>
+    <div class="stat"><div class="v">${S.sets.length?Math.round(wins/S.sets.length*100)+"%":"–"}</div><div class="k">Set win rate</div></div>
+    <div class="stat"><div class="v">${Object.values(S.ms).filter(Boolean).length}/30</div><div class="k">Milestones</div></div>
+  </div>
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <h2>Session · ${total} min</h2>
+      <div class="row">
+        <label class="small muted" for="mins">Time</label>
+        <select id="mins" style="width:auto">${[30,60,90].map(m=>`<option ${m==S.mins?"selected":""} value="${m}">${m} min</option>`).join("")}</select>
+        <button class="btn sm ghost" id="reroll" title="Swap in different drills for today">Shuffle</button>
+      </div>
+    </div>
+    <div class="meter" aria-label="Session progress"><i style="width:${done/s.ids.length*100}%"></i></div>
+    <div class="session">
+      ${s.ids.map((id,i)=>{const d=D(id);if(!d)return"";const ok=s.done.includes(id);return `
+      <div class="block cat-${d.cat} ${ok?"done":""}">
+        <input type="checkbox" id="blk-${id}" data-blk="${id}" ${ok?"checked":""} aria-label="Mark ${esc(d.name)} done">
+        <div style="min-width:0;display:grid;gap:3px">
+          <button class="linkish" data-open="${id}">${esc(d.name)}</button>
+          <span class="small muted">${esc(d.goal)}</span>
+          <span><span class="chip ${d.cat==="exec"?"exec":d.cat==="def"?"def":""}">${CATS[d.cat]}</span></span>
+        </div>
+        <span class="mins">${d.mins}′</span>
+      </div>`;}).join("")}
+    </div>
+    ${s.complete?`<p style="color:var(--good);font-weight:700">Session complete. Log a set or rest up.</p>`:`<p class="small muted">Tap a drill name for setup, steps and its pass mark.</p>`}
+  </section>
+  <div id="drillpanel"></div>
+  <section class="card">
+    <h3>Your team</h3>
+    ${S.team.point?`<p><b>${esc(S.team.point)}</b> / ${esc(S.team.mid||"?")} / ${esc(S.team.anchor||"?")}</p><p class="small muted">${esc(S.team.assists)}</p>`:`<p class="muted">No team yet. Set it up in <a href="#combos">Combos</a>.</p>`}
+  </section>`;
+}
+function drillCard(d){
+  const logs=S.drillLog.filter(l=>l.id===d.id);
+  const best=logs.length?Math.max(...logs.map(l=>l.hit/l.of)):null;
+  return `<article class="card drill" id="drill-${d.id}">
+    <div class="row" style="justify-content:space-between"><h3>${esc(d.name)}</h3><span class="row"><span class="chip ${d.cat==="exec"?"exec":d.cat==="def"?"def":""}">${CATS[d.cat]}</span><span class="mins">${d.mins} min · phase ${d.phase}+</span></span></div>
+    <p>${esc(d.goal)}</p>
+    <p class="small"><b>Setup:</b> ${esc(d.setup)}</p>
+    <ol>${d.steps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>
+    <div class="pass"><b>Pass mark:</b> ${esc(d.pass)}</div>
+    <p class="tip">${esc(d.tip)}</p>
+    <div class="row">
+      <label class="small muted" for="hit-${d.id}">Log reps</label>
+      <input type="number" id="hit-${d.id}" min="0" placeholder="hit" style="width:76px">
+      <span class="muted">/</span>
+      <input type="number" id="of-${d.id}" min="1" placeholder="tries" style="width:76px">
+      <button class="btn sm" data-logrep="${d.id}">Save</button>
+      ${best!==null?`<span class="small muted">Best: ${Math.round(best*100)}% · ${logs.length} log${logs.length>1?"s":""}</span>`:""}
+    </div>
+    ${logs.length?`<div class="small muted mono">${logs.slice(-6).map(l=>`${l.date.slice(5)} ${l.hit}/${l.of}`).join(" · ")}</div>`:""}
+  </article>`;
+}
+let drillFilter="all";
+function vDrills(){
+  const list=DRILLS.filter(d=>drillFilter==="all"||d.cat===drillFilter);
+  return `<section class="hero"><div class="eyebrow">${DRILLS.length} drills</div><h1>Drill <span>library</span></h1><p class="muted">Every drill has a training-mode setup and a pass mark. Log your reps to track progress.</p></section>
+  <div class="row">${["all",...Object.keys(CATS)].map(c=>`<button class="chip ${drillFilter===c?"on":""}" data-filter="${c}">${c==="all"?"All":CATS[c]}</button>`).join("")}</div>
+  <div class="grid2">${list.map(drillCard).join("")}</div>`;
+}
+function vPlan(){
+  return `<section class="hero"><div class="eyebrow">Current: Phase ${S.phase}</div><h1>Path to <span>pro</span></h1><p class="muted">Five phases. Tick milestones as you hit them. Your phase decides which drills Today pulls from.</p></section>
+  ${PHASES.map(p=>{const n=p.ms.filter((_,i)=>S.ms[p.n+"."+i]).length;return `
+  <section class="card phase" ${p.n===S.phase?'style="border-color:var(--ki)"':""}>
+    <div class="phase-head"><h2>${p.n}. ${p.name}</h2><span class="small muted">${p.weeks} · ${n}/${p.ms.length}</span></div>
+    <p class="muted">${p.desc}</p>
+    <div class="meter"><i style="width:${n/p.ms.length*100}%"></i></div>
+    ${p.ms.map((m,i)=>`<label class="ms"><input type="checkbox" id="ms-${p.n}-${i}" data-ms="${p.n}.${i}" ${S.ms[p.n+"."+i]?"checked":""}><span>${esc(m)}</span></label>`).join("")}
+    <div class="row">${p.n===S.phase?`<span class="chip on">Current phase</span>`:`<button class="btn sm" data-phase="${p.n}">Train in this phase</button>`}
+    ${p.n===S.phase&&n===p.ms.length&&p.n<5?`<button class="btn sm pri" data-phase="${p.n+1}">Move to phase ${p.n+1}</button>`:""}</div>
+  </section>`;}).join("")}`;
+}
+function vLog(){
+  const lc=lossCounts(30), max=lc.length?lc[0][1]:1;
+  const wins=S.sets.filter(s=>s.result==="W").length;
+  return `<section class="hero"><div class="eyebrow">${S.sets.length} sets logged</div><h1>Set <span>log</span></h1><p class="muted">Log every set. Tag why you lost. Your top tag becomes tomorrow's focus.</p></section>
+  <section class="card">
+    <h3>Log a set</h3>
+    <form id="setform" class="form">
+      <label class="f">Date<input type="date" id="s-date" value="${today()}"></label>
+      <label class="f">Opponent<input type="text" id="s-opp" placeholder="Name or rank"></label>
+      <label class="f">Their team<input type="text" id="s-team" placeholder="e.g. Goku (GT), Cell, Hit" list="roster"></label>
+      <label class="f">Result<select id="s-res"><option value="W">Won</option><option value="L">Lost</option></select></label>
+      <label class="f">Score<input type="text" id="s-score" placeholder="e.g. 3-1"></label>
+      <label class="f">Where<select id="s-where"><option>Ranked</option><option>Casual / lobby</option><option>Online bracket</option><option>Local</option><option>Major</option></select></label>
+      <div class="wide"><div class="f" style="margin-bottom:6px">What lost you games (tap all that apply)</div><div class="row" id="tagbox">${LOSS_TAGS.map(l=>`<button type="button" class="chip" data-tag="${esc(l.t)}">${esc(l.t)}</button>`).join("")}</div></div>
+      <label class="f wide">Notes<textarea id="s-notes" placeholder="What worked, what to fix, matchup notes"></textarea></label>
+      <div class="wide"><button class="btn pri" type="submit">Save set</button></div>
+    </form>
+  </section>
+  <div class="grid2">
+    <section class="card"><h3>Record</h3><div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat"><div class="v">${wins}</div><div class="k">Won</div></div>
+      <div class="stat"><div class="v">${S.sets.length-wins}</div><div class="k">Lost</div></div>
+      <div class="stat"><div class="v">${S.sets.length?Math.round(wins/S.sets.length*100)+"%":"–"}</div><div class="k">Win rate</div></div></div></section>
+    <section class="card"><h3>Top loss reasons (last 30 sets)</h3>
+      ${lc.length?lc.slice(0,6).map(([t,n])=>`<div class="bar-h"><span>${esc(t)}</span><span class="t"><i style="width:${n/max*100}%"></i></span><span class="mono">${n}</span></div>`).join(""):`<div class="empty">Tag a loss and your weak spots show up here.</div>`}
+    </section>
+  </div>
+  <section class="card"><h3>History</h3>
+    ${S.sets.length?`<div class="tbl"><table><tr><th>Date</th><th>Opponent</th><th>Result</th><th>Tags / notes</th><th></th></tr>
+    ${S.sets.slice().reverse().map((s)=>`<tr><td class="num">${esc(s.date)}</td><td>${esc(s.opp)}<div class="small muted">${esc(s.team)} · ${esc(s.where)}</div></td><td><b style="color:var(--${s.result==="W"?"good":"bad"})">${s.result}</b> <span class="mono">${esc(s.score)}</span></td><td class="small">${esc((s.tags||[]).join(", "))}<div class="muted">${esc(s.notes)}</div></td><td><button class="btn sm ghost" data-delset="${s.at}" aria-label="Delete set">✕</button></td></tr>`).join("")}</table></div>`:`<div class="empty">No sets yet. Play a first-to-3 and log it above.</div>`}
+  </section>
+  <section class="card"><h3>Backup</h3><p class="small muted">Copy your data to keep a backup or move it to another device. Paste a backup into the box and press Restore to load it.</p>
+    <div class="row"><button class="btn sm" id="exp">Copy backup</button><button class="btn sm ghost" id="imp">Restore from box</button><span class="save-state">${esc(saveMsg)}</span></div>
+    <textarea id="bk" class="mono" placeholder="Backup text appears here"></textarea></section>`;
+}
+function vCombos(){
+  return `<section class="hero"><div class="eyebrow">Your notebook</div><h1>Team & <span>combos</span></h1><p class="muted">Write routes in numpad notation. Track your best streak out of 10.</p></section>
+  <section class="card"><h3>Team</h3>
+    <div class="form">
+      <label class="f">Point<input type="text" id="t-point" list="roster" value="${esc(S.team.point)}"></label>
+      <label class="f">Mid<input type="text" id="t-mid" list="roster" value="${esc(S.team.mid)}"></label>
+      <label class="f">Anchor<input type="text" id="t-anchor" list="roster" value="${esc(S.team.anchor)}"></label>
+      <label class="f wide">Assists & game plan<input type="text" id="t-assists" placeholder="e.g. Mid on B (lockdown), Anchor on A (extension)" value="${esc(S.team.assists)}"></label>
+      <div class="wide"><button class="btn" id="saveteam">Save team</button></div>
+    </div></section>
+  <section class="card"><h3>Add a combo</h3>
+    <form id="comboform" class="form">
+      <label class="f">Character<input type="text" id="c-char" list="roster" value="${esc(S.team.point)}"></label>
+      <label class="f">Situation<select id="c-sit"><option>Midscreen</option><option>Corner</option><option>Anti-air</option><option>Punish</option><option>Assist extension</option><option>Sparking</option></select></label>
+      <label class="f">Meter used<select id="c-bar">${[0,1,2,3,4,5,6,7].map(n=>`<option>${n}</option>`).join("")}</select></label>
+      <label class="f">Damage<input type="number" id="c-dmg" placeholder="e.g. 4200"></label>
+      <label class="f wide">Route<input type="text" id="c-route" class="mono" placeholder="e.g. 2L > 5M > 2M > 5H > sj.LLM > j.2H > SD > ... > 236 super"></label>
+      <div class="wide"><button class="btn pri" type="submit">Add combo</button></div>
+    </form>
+    <p class="small muted">Get routes from Combo Challenge, your character's community wiki page, or pro match footage.</p>
+  </section>
+  <section class="card"><h3>Notebook</h3>
+    ${S.combos.length?S.combos.map((c,i)=>`<div style="display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)">
+      <div class="row" style="justify-content:space-between"><b>${esc(c.char)} · ${esc(c.sit)}</b><span class="row small muted"><span class="ki-bars" title="${c.bar} bars">${[...Array(7)].map((_,k)=>`<i class="${k<c.bar?"f":""}"></i>`).join("")}</span>${c.dmg?`<span class="mono">${esc(c.dmg)} dmg</span>`:""}</span></div>
+      <code style="overflow-wrap:anywhere">${esc(c.route)}</code>
+      <div class="row small"><span class="muted">Best streak:</span><b class="mono">${c.best||0}/10</b>
+        <button class="btn sm" data-streak="${i}" data-d="1">+1</button><button class="btn sm ghost" data-streak="${i}" data-d="-1">−1</button>
+        <button class="btn sm ghost" data-delcombo="${i}" style="margin-left:auto">Delete</button></div>
+    </div>`).join(""):`<div class="empty">No combos yet. Add your point character's midscreen BnB first.</div>`}
+  </section>`;
+}
+function vGuide(){
+  return `<section class="hero"><div class="eyebrow">Read once, come back often</div><h1>The <span>guide</span></h1><p class="muted">Mechanics, game plan, Switch 2 setup and the road to competing.</p></section>
+  ${GUIDE.map((g,i)=>`<details class="acc" ${i<2?"open":""}><summary>${g.h}</summary><div class="body">${g.b}</div></details>`).join("")}`;
+}
+
+/* ---------------- Router & events ---------------- */
+const VIEWS={today:vToday,drills:vDrills,plan:vPlan,log:vLog,combos:vCombos,guide:vGuide};
+let pendingTags=new Set();
+function route(){const h=(location.hash||"#today").slice(1);return VIEWS[h]?h:"today";}
+function render(){
+  const r=route();
+  $("#app").innerHTML=VIEWS[r]()+`<datalist id="roster">${ROSTER.map(n=>`<option value="${esc(n)}">`).join("")}</datalist>`;
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.getAttribute("href")==="#"+r)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
+  pendingTags=new Set(); updatePL();
+}
+window.addEventListener("hashchange",()=>{render();window.scrollTo(0,0);});
+
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.blk){const s=todaySession(),id=t.dataset.blk;
+    if(t.checked&&!s.done.includes(id))s.done.push(id); if(!t.checked)s.done=s.done.filter(x=>x!==id);
+    const was=s.complete; s.complete=s.done.length===s.ids.length; save(); render();
+    if(s.complete&&!was) toast("Session complete. Streak +1"); }
+  if(t.id==="mins"){S.mins=+t.value; const s=S.sessions[today()]; S.sessions[today()]=Object.assign(buildSession(s?s.seed:0),{}); save(); render();}
+  if(t.dataset.ms){S.ms[t.dataset.ms]=t.checked; save(); render(); if(t.checked) toast("Milestone hit");}
+});
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button"); if(!t) return;
+  if(t.id==="reroll"){const s=S.sessions[today()]; S.sessions[today()]=buildSession((s?s.seed:0)+1); save(); render(); toast("New drills for today");}
+  if(t.dataset.open){const d=D(t.dataset.open); $("#drillpanel").innerHTML=drillCard(d); $("#drillpanel").scrollIntoView({behavior:"smooth",block:"start"});}
+  if(t.dataset.filter){drillFilter=t.dataset.filter; render();}
+  if(t.dataset.logrep){const id=t.dataset.logrep, hit=+$("#hit-"+id).value, of=+$("#of-"+id).value;
+    if(!of||hit<0||hit>of){toast("Enter hits and tries, hits ≤ tries");return;}
+    S.drillLog.push({id,hit,of,date:today()}); save();
+    const panel=t.closest("#drillpanel"); if(panel){panel.innerHTML=drillCard(D(id));}else render(); toast(`Logged ${hit}/${of}`);}
+  if(t.dataset.phase){S.phase=+t.dataset.phase; const s=S.sessions[today()]; if(s&&!s.done.length) S.sessions[today()]=buildSession(s.seed); save(); render(); toast("Phase "+S.phase+" set");}
+  if(t.dataset.tag){const g=t.dataset.tag; pendingTags.has(g)?pendingTags.delete(g):pendingTags.add(g); t.classList.toggle("on");}
+  if(t.dataset.delset){S.sets=S.sets.filter(s=>String(s.at)!==t.dataset.delset); save(); render();}
+  if(t.id==="saveteam"){S.team={point:$("#t-point").value.trim(),mid:$("#t-mid").value.trim(),anchor:$("#t-anchor").value.trim(),assists:$("#t-assists").value.trim()}; save(); toast("Team saved");}
+  if(t.dataset.streak){const c=S.combos[+t.dataset.streak]; c.best=Math.max(0,Math.min(10,(c.best||0)+ +t.dataset.d)); save(); render();}
+  if(t.dataset.delcombo){S.combos.splice(+t.dataset.delcombo,1); save(); render();}
+  if(t.id==="exp"){const txt=JSON.stringify(S); $("#bk").value=txt;
+    navigator.clipboard?.writeText(txt).then(()=>toast("Backup copied"),()=>{$("#bk").select();toast("Select and copy the text");}) ?? ($("#bk").select());}
+  if(t.id==="imp"){try{const d=JSON.parse($("#bk").value); if(!d||typeof d!=="object"||!("sets" in d)) throw 0; S=Object.assign(blank(),d); save(); render(); toast("Backup restored");}catch(err){toast("That text isn't a valid backup");}}
+});
+document.addEventListener("submit",e=>{
+  e.preventDefault();
+  if(e.target.id==="setform"){
+    S.sets.push({at:Date.now(),date:$("#s-date").value||today(),opp:$("#s-opp").value.trim(),team:$("#s-team").value.trim(),result:$("#s-res").value,score:$("#s-score").value.trim(),where:$("#s-where").value,tags:[...pendingTags],notes:$("#s-notes").value.trim()});
+    save(); render(); toast("Set logged");
+  }
+  if(e.target.id==="comboform"){
+    const route=$("#c-route").value.trim(); if(!route){toast("Write the route first");return;}
+    S.combos.unshift({char:$("#c-char").value.trim()||"?",sit:$("#c-sit").value,bar:+$("#c-bar").value,dmg:$("#c-dmg").value,route,best:0});
+    save(); render(); toast("Combo added");
+  }
+});
+render();
+</script>
+
+</body></html>
